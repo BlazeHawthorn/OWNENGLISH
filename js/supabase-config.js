@@ -13,5 +13,5 @@
    dane kontaktowe) zaczną działać dopiero po wpisaniu tu prawdziwych danych.
    ========================================================================== */
 
-window.SUPABASE_URL = 'https://TWOJ-PROJEKT.supabase.co'; // TODO: podmień
-window.SUPABASE_ANON_KEY = 'TWOJ-ANON-PUBLIC-KEY'; // TODO: podmień
+NEXT_PUBLIC_SUPABASE_URL=https://frgtkozbwfcxyriwyaqb.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_7m2eJSEAk1J-FneL6q89fw_3gpzRxYB
