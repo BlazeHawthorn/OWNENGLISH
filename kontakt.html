@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kontakt — OwnEnglish</title>
+<meta name="description" content="Umów bezpłatną konsultację lub napisz zapytanie — kursy indywidualne oraz oferta dla firm.">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+
+  <div class="usa-topbar">
+    <div class="container">
+      <svg width="34" height="25" viewBox="0 0 18 13" xmlns="http://www.w3.org/2000/svg">
+        <clipPath id="topbarUsClip"><rect width="18" height="13" rx="1.5"/></clipPath>
+        <g clip-path="url(#topbarUsClip)">
+          <rect width="18" height="13" fill="#FFFFFF"/>
+          <rect width="18" height="1.85" y="0" fill="#B22234"/>
+          <rect width="18" height="1.85" y="3.7" fill="#B22234"/>
+          <rect width="18" height="1.85" y="7.4" fill="#B22234"/>
+          <rect width="18" height="1.85" y="11.1" fill="#B22234"/>
+          <rect width="8" height="7" fill="#3C3B6E"/>
+        </g>
+      </svg>
+      <span>Angielski — wymowa i słownictwo, jakich naprawdę używa się w USA.</span>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <div class="container" style="display:flex; align-items:center; justify-content:space-between; height:88px;">
+      <a href="index.html" class="logo">
+        <svg width="30" height="30" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 10C8 7.79 9.79 6 12 6H28C30.21 6 32 7.79 32 10V22C32 24.21 30.21 26 28 26H16L9 32V26H12C9.79 26 8 24.21 8 22V10Z" stroke="#16A34A" stroke-width="2.4" stroke-linejoin="round"/>
+          <path d="M13.5 14.5C13.5 14.5 15.5 12.3 18 14.5C20.5 16.7 22.5 12.3 25 14.5" stroke="#16A34A" stroke-width="2.1" stroke-linecap="round"/>
+          <path d="M13.5 19.5H24.5" stroke="#16A34A" stroke-width="2.1" stroke-linecap="round"/>
+        </svg>
+        <span class="logo-text">OwnEnglish</span>
+      </a>
+      <input type="checkbox" id="nav-toggle" class="nav-toggle">
+      <nav class="nav-links">
+        <a href="oferta.html">Kursy angielskiego</a>
+        <a href="dla-firm.html">Dla firm</a>
+        <a href="cennik.html">Cennik</a>
+        <a href="o-mnie.html">O mnie</a>
+        <a href="zespol.html">Nasz zespół</a>
+        <a href="lekcje.html">Lekcje wideo</a>
+        <a href="faq.html">FAQ</a>
+        <a href="kontakt.html" class="btn btn-primary btn-sm nav-cta-mobile">Umów konsultację</a>
+      </nav>
+      <label for="nav-toggle" class="nav-toggle-label" aria-label="Otwórz menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 6H20M4 12H20M4 18H20" stroke="#1C1A18" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </label>
+      <a href="kontakt.html" class="btn btn-primary btn-sm header-cta" style="flex-shrink:0;">Umów konsultację</a>
+    </div>
+  </header>
+
+  <!-- INTRO -->
+  <div class="section-hero">
+    <div class="container stack gap-md" style="padding-top:64px; padding-bottom:64px; max-width:720px;">
+      <span class="eyebrow">Kontakt</span>
+      <h1 style="font-size:44px;">Porozmawiajmy o Twoim celu.</h1>
+      <p class="text-lead text-muted">Wypełnij formularz odpowiedni dla Ciebie — odpowiadamy zwykle w ciągu jednego dnia roboczego.</p>
+    </div>
+  </div>
+
+  <!-- UMÓW TERMIN ONLINE (docelowo: Calendly) -->
+  <section class="section">
+    <div class="container">
+      <div class="grid grid-2" style="align-items:center; gap:48px;">
+        <div class="stack gap-md">
+          <span class="eyebrow">Najszybsza droga</span>
+          <h2>Wybierz termin sam, online.</h2>
+          <p class="text-muted" style="max-width:420px;">Zobacz dostępne terminy i zarezerwuj bezpłatną konsultację w kilka sekund — bez wymiany maili. Kalendarz synchronizuje się na bieżąco z moją dostępnością.</p>
+          <p class="text-muted" style="font-size:13px;">Podgląd obok pokazuje, jak to będzie wyglądać — aktywny, klikalny kalendarz pojawi się tutaj po podłączeniu konta do rezerwacji terminów.</p>
+        </div>
+        <div class="calendar-mock">
+          <span class="photo-frame-badge">Przykładowy podgląd</span>
+          <div class="calendar-mock-header">
+            <span class="calendar-mock-month">Wrzesień 2026</span>
+            <div class="calendar-mock-nav"><span>‹</span><span>›</span></div>
+          </div>
+          <div class="calendar-mock-weekdays">
+            <span>Pn</span><span>Wt</span><span>Śr</span><span>Cz</span><span>Pt</span><span>Sb</span><span>Nd</span>
+          </div>
+          <div class="calendar-mock-grid">
+            <span class="calendar-mock-day is-muted">31</span>
+            <span class="calendar-mock-day">1</span>
+            <span class="calendar-mock-day is-available">2</span>
+            <span class="calendar-mock-day">3</span>
+            <span class="calendar-mock-day is-available">4</span>
+            <span class="calendar-mock-day">5</span>
+            <span class="calendar-mock-day is-muted">6</span>
+            <span class="calendar-mock-day is-muted">7</span>
+            <span class="calendar-mock-day is-available">8</span>
+            <span class="calendar-mock-day is-selected">9</span>
+            <span class="calendar-mock-day is-available">10</span>
+            <span class="calendar-mock-day">11</span>
+            <span class="calendar-mock-day">12</span>
+            <span class="calendar-mock-day is-muted">13</span>
+            <span class="calendar-mock-day is-muted">14</span>
+            <span class="calendar-mock-day is-available">15</span>
+            <span class="calendar-mock-day is-available">16</span>
+            <span class="calendar-mock-day">17</span>
+            <span class="calendar-mock-day is-available">18</span>
+            <span class="calendar-mock-day">19</span>
+            <span class="calendar-mock-day is-muted">20</span>
+            <span class="calendar-mock-day is-muted">21</span>
+          </div>
+          <div class="calendar-mock-slots">
+            <span class="calendar-mock-slot is-selected">9:00</span>
+            <span class="calendar-mock-slot">11:00</span>
+            <span class="calendar-mock-slot">14:30</span>
+            <span class="calendar-mock-slot">16:00</span>
+          </div>
+        </div>
+      </div>
+
+      <!--
+        AKTYWACJA PRAWDZIWEGO KALENDARZA (np. Calendly):
+        1) Załóż darmowe konto na calendly.com i utwórz wydarzenie "Bezpłatna konsultacja".
+        2) Skopiuj link do wydarzenia (np. https://calendly.com/twoja-nazwa/konsultacja).
+        3) Usuń całą sekcję ".calendar-mock" powyżej (to tylko podgląd) i wklej w to miejsce
+           poniższy, gotowy kod, podmieniając data-url na swój prawdziwy link:
+
+        <div class="calendly-inline-widget" data-url="https://calendly.com/TWOJA-NAZWA/konsultacja" style="min-width:320px; height:700px;"></div>
+        <script type="text/javascript" src="https://assets.calendly.com/assets/external/widget.js" async></script>
+      -->
+    </div>
+  </section>
+
+  <!-- FORMULARZE -->
+  <section class="section section-alt">
+    <div class="container">
+      <div class="stack gap-xs" style="max-width:600px; margin-bottom:40px;">
+        <span class="eyebrow">Alternatywnie</span>
+        <h2>Wolisz najpierw napisać?</h2>
+        <p class="text-muted">Wybierz formularz odpowiedni dla Ciebie — po kliknięciu „Wyślij" otworzy się gotowa wiadomość e-mail, którą wysyłasz jednym kliknięciem.</p>
+      </div>
+      <div class="grid grid-2" style="align-items:start;">
+
+        <!-- INDYWIDUALNY -->
+        <div class="card stack gap-md" style="gap:20px;">
+          <div class="stack gap-xs">
+            <span class="badge badge-tint">Osoba prywatna</span>
+            <h2 class="h2-sm">Zapytanie indywidualne</h2>
+            <p class="text-muted">Umów bezpłatną konsultację lub zapytaj o dostępne terminy.</p>
+          </div>
+          <form id="form-indywidualny" class="stack gap-md" style="gap:16px;">
+            <div class="field">
+              <label for="ind-imie">Imię i nazwisko</label>
+              <input type="text" id="ind-imie" name="ind-imie" placeholder="Twoje imię i nazwisko">
+            </div>
+            <div class="field">
+              <label for="ind-email">E-mail</label>
+              <input type="email" id="ind-email" name="ind-email" placeholder="ty@przyklad.pl">
+            </div>
+            <div class="field">
+              <label for="ind-poziom">Twój poziom (jeśli znasz)</label>
+              <input type="text" id="ind-poziom" name="ind-poziom" placeholder="np. A2, nie wiem, zacznę od zera...">
+            </div>
+            <div class="field">
+              <label for="ind-wiadomosc">Wiadomość</label>
+              <textarea id="ind-wiadomosc" name="ind-wiadomosc" placeholder="Krótko opisz swój cel — praca, podróże, pewność siebie w mówieniu..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:fit-content;">Umów bezpłatną konsultację</button>
+          </form>
+        </div>
+
+        <!-- FIRMOWY -->
+        <div class="card stack gap-md" style="gap:20px;">
+          <div class="stack gap-xs">
+            <span class="badge badge-outline">Firma / zespół</span>
+            <h2 class="h2-sm">Zapytanie firmowe</h2>
+            <p class="text-muted">Opisz potrzebę zespołu — odpowiemy z propozycją programu i terminem rozmowy.</p>
+          </div>
+          <form id="form-firmowy" class="stack gap-md" style="gap:16px;">
+            <div class="field">
+              <label for="firma-nazwa-k">Nazwa firmy</label>
+              <input type="text" id="firma-nazwa-k" name="firma-nazwa-k" placeholder="Nazwa Twojej firmy">
+            </div>
+            <div class="field">
+              <label for="firma-email-k">E-mail służbowy</label>
+              <input type="email" id="firma-email-k" name="firma-email-k" placeholder="ty@firma.pl">
+            </div>
+            <div class="field">
+              <label for="firma-osoby-k">Liczba osób do przeszkolenia</label>
+              <input type="text" id="firma-osoby-k" name="firma-osoby-k" placeholder="np. 5–10 osób">
+            </div>
+            <div class="field">
+              <label for="firma-wiadomosc-k">Wiadomość</label>
+              <textarea id="firma-wiadomosc-k" name="firma-wiadomosc-k" placeholder="Krótki opis celu, branży i poziomu zespołu..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-dark" style="width:fit-content;">Wyślij zapytanie firmowe</button>
+          </form>
+        </div>
+
+      </div>
+      <p class="text-muted" style="font-size:13px; margin-top:20px;">Kliknięcie „Wyślij" otwiera Twój program pocztowy z gotową, wypełnioną wiadomością — nic nie wysyła się automatycznie w tle, Ty decydujesz i klikasz „Wyślij" w swojej poczcie. [Adres e-mail w tle to na razie placeholder — do podmiany na docelowy adres OwnEnglish, patrz plik js/kontakt-form.js.]</p>
+    </div>
+  </section>
+
+  <!-- DANE KONTAKTOWE -->
+  <section class="section section-alt">
+    <div class="container">
+      <div class="grid grid-3">
+        <div class="stack gap-xs">
+          <span class="footer-heading">E-mail</span>
+          <span class="text-strong" data-field="contact-email">[kontakt@ownenglish.pl]</span>
+        </div>
+        <div class="stack gap-xs">
+          <span class="footer-heading">Telefon</span>
+          <span class="text-strong" data-field="contact-phone">[numer telefonu]</span>
+        </div>
+        <div class="stack gap-xs">
+          <span class="footer-heading">Lokalizacja</span>
+          <span class="text-strong" data-field="contact-location">[lokalizacja — jeśli prowadzone są zajęcia stacjonarne]</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="stack gap-md">
+          <a href="index.html" class="logo">
+            <svg width="26" height="26" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 10C8 7.79 9.79 6 12 6H28C30.21 6 32 7.79 32 10V22C32 24.21 30.21 26 28 26H16L9 32V26H12C9.79 26 8 24.21 8 22V10Z" stroke="#16A34A" stroke-width="2.4" stroke-linejoin="round"/>
+            </svg>
+            OwnEnglish
+          </a>
+          <p class="text-muted" style="max-width:280px;">Kursy angielskiego dla dorosłych i młodzieży, którzy chcą mówić swobodnie i być naprawdę zrozumiani.</p>
+        </div>
+        <div class="stack gap-sm">
+          <span class="footer-heading">Nawigacja</span>
+          <a href="oferta.html" class="btn-link">Kursy angielskiego</a>
+          <a href="dla-firm.html" class="btn-link">Dla firm</a>
+          <a href="cennik.html" class="btn-link">Cennik</a>
+          <a href="zespol.html" class="btn-link">Nasz zespół</a>
+          <a href="lekcje.html" class="btn-link">Lekcje wideo</a>
+          <a href="faq.html" class="btn-link">FAQ</a>
+          <a href="poziom.html" class="btn-link">Sprawdź poziom</a>
+        </div>
+        <div class="stack gap-sm">
+          <span class="footer-heading">Kontakt</span>
+          <span class="text-muted" data-field="contact-email">[kontakt@ownenglish.pl]</span>
+          <span class="text-muted" data-field="contact-phone">[numer telefonu]</span>
+          <div class="row gap-sm" style="margin-top:8px;">
+            <span class="circle circle-outline">ig</span>
+            <span class="circle circle-outline">fb</span>
+            <span class="circle circle-outline">in</span>
+          </div>
+        </div>
+      </div>
+      <div class="footer-copyright">© 2026 OwnEnglish. Wszelkie prawa zastrzeżone.</div>
+    </div>
+  </footer>
+
+  <script src="js/reveal.js" defer></script>
+  <script src="js/kontakt-form.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/site-content.js"></script>
+</body>
+</html>

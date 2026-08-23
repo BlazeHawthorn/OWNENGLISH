@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OwnEnglish — styleguide</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components.css">
+<style>
+  .swatch {
+    height: 72px;
+    border-radius: var(--radius-card);
+    border: 1px solid var(--color-border);
+    margin-bottom: 8px;
+  }
+  .swatch-label {
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    color: var(--color-ink-soft);
+  }
+  .swatch-value {
+    font-size: 12px;
+    color: var(--color-muted);
+    font-family: monospace;
+  }
+  .sg-block {
+    border-bottom: 1px solid var(--color-border);
+  }
+  .sg-block:last-child {
+    border-bottom: none;
+  }
+  .type-sample {
+    color: var(--color-ink);
+  }
+</style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="index.html" class="logo">
+        <svg width="30" height="30" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 10C8 7.79 9.79 6 12 6H28C30.21 6 32 7.79 32 10V22C32 24.21 30.21 26 28 26H16L9 32V26H12C9.79 26 8 24.21 8 22V10Z" stroke="#16A34A" stroke-width="2.4" stroke-linejoin="round"/>
+          <path d="M13.5 14.5C13.5 14.5 15.5 12.3 18 14.5C20.5 16.7 22.5 12.3 25 14.5" stroke="#16A34A" stroke-width="2.1" stroke-linecap="round"/>
+          <path d="M13.5 19.5H24.5" stroke="#16A34A" stroke-width="2.1" stroke-linecap="round"/>
+        </svg>
+        OwnEnglish
+      </a>
+      <input type="checkbox" id="nav-toggle" class="nav-toggle">
+      <nav class="nav-links">
+        <a href="#kolory">Kolory</a>
+        <a href="#typografia">Typografia</a>
+        <a href="#przyciski">Przyciski</a>
+        <a href="#komponenty">Komponenty</a>
+      </nav>
+      <label for="nav-toggle" class="nav-toggle-label" aria-label="Otwórz menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 6H20M4 12H20M4 18H20" stroke="#1C1A18" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </label>
+    </div>
+  </header>
+
+  <div class="section-hero">
+    <div class="container stack gap-md" style="padding-top: 56px; padding-bottom: 56px;">
+      <span class="eyebrow">OwnEnglish — kursy angielskiego dla dorosłych i młodzieży.</span>
+      <h1 style="color: var(--color-ink); font-size: 36px;">Styleguide</h1>
+      <p class="text-muted text-lead" style="max-width: 640px;">Referencyjna strona ze wszystkimi elementami stylu OwnEnglish — kolorami, typografią i komponentami, z których budujemy kolejne podstrony. Wszystko poniżej korzysta z klas z <code>base.css</code> i <code>components.css</code>, bez stylów inline.</p>
+    </div>
+  </div>
+
+  <!-- KOLORY -->
+  <section id="kolory" class="section sg-block">
+    <div class="container stack gap-lg">
+      <h2>Kolory</h2>
+      <div class="grid grid-4">
+        <div>
+          <div class="swatch" style="background: var(--color-ink);"></div>
+          <div class="swatch-label">Ink (główny ciemny, neutralny)</div>
+          <div class="swatch-value">#1C1A18</div>
+        </div>
+        <div>
+          <div class="swatch" style="background: var(--color-accent);"></div>
+          <div class="swatch-label">Accent (zieleń)</div>
+          <div class="swatch-value">#16A34A</div>
+        </div>
+        <div>
+          <div class="swatch" style="background: var(--color-accent-dark);"></div>
+          <div class="swatch-label">Accent dark</div>
+          <div class="swatch-value">#0F7D3A</div>
+        </div>
+        <div>
+          <div class="swatch" style="background: var(--color-accent-tint);"></div>
+          <div class="swatch-label">Accent tint</div>
+          <div class="swatch-value">#DDF3E4</div>
+        </div>
+        <div>
+          <div class="swatch" style="background: var(--color-bg);"></div>
+          <div class="swatch-label">Tło strony</div>
+          <div class="swatch-value">#FFFFFF</div>
+        </div>
+        <div>
+          <div class="swatch" style="background: var(--color-bg-alt);"></div>
+          <div class="swatch-label">Tło naprzemienne</div>
+          <div class="swatch-value">#EDF8F1</div>
+        </div>
+        <div>
+          <div class="swatch" style="background: var(--color-muted);"></div>
+          <div class="swatch-label">Tekst drugorzędny</div>
+          <div class="swatch-value">#6B655D</div>
+        </div>
+        <div>
+          <div class="swatch" style="background: var(--color-border);"></div>
+          <div class="swatch-label">Obramowania</div>
+          <div class="swatch-value">#E1ECE4</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TYPOGRAFIA -->
+  <section id="typografia" class="section sg-block section-alt">
+    <div class="container stack gap-lg">
+      <h2>Typografia</h2>
+      <p class="text-muted">Nagłówki: Space Grotesk. Tekst: Public Sans. Oba z Google Fonts.</p>
+      <div class="card stack gap-md">
+        <h1 class="type-sample">Nagłówek H1 — 52px / 700</h1>
+        <h2 class="type-sample">Nagłówek H2 — 34px / 700</h2>
+        <h3 class="type-sample">Nagłówek H3 — 18px / 600</h3>
+        <p class="type-sample text-lead">Tekst lead — 18px, do krótkich wprowadzeń pod nagłówkiem.</p>
+        <p class="type-sample">Tekst podstawowy — 15px, do akapitów i opisów.</p>
+        <p class="text-muted">Tekst drugorzędny — ten sam rozmiar, przygaszony kolor.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRZYCISKI I ODZNAKI -->
+  <section id="przyciski" class="section sg-block">
+    <div class="container stack gap-lg">
+      <h2>Przyciski i odznaki</h2>
+      <div class="row-wrap gap-md">
+        <button class="btn btn-primary">Umów bezpłatną konsultację</button>
+        <button class="btn btn-dark">Wariant mocny (CTA końcowe)</button>
+        <button class="btn btn-primary btn-sm">Wariant mały (nagłówek)</button>
+        <a href="#" class="btn-link">Link tekstowy →</a>
+      </div>
+      <div class="row-wrap gap-sm" style="margin-top: 12px;">
+        <span class="badge badge-tint">Dostępna oferta studencka</span>
+        <span class="badge badge-tint badge-lg">Elastyczny harmonogram</span>
+        <span class="badge badge-outline">Dla pracujących dorosłych</span>
+        <span class="badge badge-outline">Dla studentów</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- KOMPONENTY -->
+  <section id="komponenty" class="section sg-block section-alt">
+    <div class="container stack gap-lg">
+      <h2>Kółka: ikony, awatary, poziomy</h2>
+      <div class="row-wrap gap-lg">
+        <div class="circle circle-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="9.5" fill="#16A34A" fill-opacity="0.12"/>
+            <circle cx="12" cy="12" r="7.6" stroke="#0F7D3A" stroke-width="2"/>
+            <path d="M12 7.8V12.2L15 14" stroke="#0F7D3A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="12" cy="12" r="1" fill="#0F7D3A"/>
+          </svg>
+        </div>
+        <div class="circle circle-sm">B1</div>
+        <div class="circle circle-sm">JK</div>
+        <div class="circle circle-outline">ig</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container stack gap-lg">
+      <h2>Karty</h2>
+      <div class="grid grid-4">
+        <div class="card stack gap-sm">
+          <h3>Karta jasna</h3>
+          <p class="text-muted">Domyślna karta na białym tle — oferta, opis kursu.</p>
+        </div>
+        <div class="card-outline stack gap-sm">
+          <h3>Karta z obrysem</h3>
+          <p class="text-muted">Używana m.in. do opinii kursantów.</p>
+        </div>
+        <div class="card-accent stack gap-sm">
+          <h3>Karta akcentowa</h3>
+          <p>Do wyróżnienia — np. „Dla firm” w siatce ofert.</p>
+        </div>
+        <div class="card-dark stack gap-sm">
+          <h3>Karta mocna (opcjonalnie)</h3>
+          <p class="text-muted">Rzadko, do pojedynczych mocnych akcentów.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="stack gap-md">
+          <a href="index.html" class="logo">
+            <svg width="26" height="26" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 10C8 7.79 9.79 6 12 6H28C30.21 6 32 7.79 32 10V22C32 24.21 30.21 26 28 26H16L9 32V26H12C9.79 26 8 24.21 8 22V10Z" stroke="#16A34A" stroke-width="2.4" stroke-linejoin="round"/>
+            </svg>
+            OwnEnglish
+          </a>
+          <p class="text-muted" style="max-width: 280px;">Kursy angielskiego dla dorosłych i młodzieży, którzy chcą mówić swobodnie i być naprawdę zrozumiani.</p>
+        </div>
+        <div class="stack gap-sm">
+          <span class="footer-heading">Nawigacja</span>
+          <a href="index.html" class="btn-link">Strona główna</a>
+          <a href="#" class="btn-link">Kursy angielskiego</a>
+        </div>
+        <div class="stack gap-sm">
+          <span class="footer-heading">Kontakt</span>
+          <span class="text-muted">[kontakt@ownenglish.pl]</span>
+        </div>
+      </div>
+      <div class="footer-copyright">© 2026 OwnEnglish. Wszelkie prawa zastrzeżone.</div>
+    </div>
+  </footer>
+
+  <script src="js/reveal.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+/* ==========================================================================
+   OwnEnglish — design tokens
+   Zmienne CSS: kolory, typografia, odstępy, promienie, cienie.
+   Ten plik ładujemy jako pierwszy na każdej stronie serwisu.
+   ========================================================================== */
+
+:root {
+  /* --- Kolory: tło i tekst --- */
+  --color-bg: #FFFFFF;           /* tło strony — czysta biel */
+  --color-bg-alt: #EDF8F1;       /* tło naprzemienne sekcji — bardzo jasny, zielonkawy odcień */
+  --color-surface: #FFFFFF;      /* karty na jasnym tle */
+  --color-border: #E1ECE4;       /* subtelne obramowania */
+
+  --color-ink: #1C1A18;          /* główny ciemny neutralny (prawie czarny) — nagłówki, mocny tekst */
+  --color-ink-soft: #29241F;     /* tekst podstawowy */
+  --color-muted: #6B655D;        /* tekst drugorzędny */
+
+  /* --- Kolory: akcent (zieleń) --- */
+  --color-accent: #16A34A;       /* zieleń — przyciski, ikony, akcenty */
+  --color-accent-dark: #0F7D3A;  /* linki, tekst na jasnym tle akcentu */
+  --color-accent-darker: #0B5C2A;/* hover linków */
+  --color-accent-tint: #DDF3E4;  /* jasne tło pod ikony/odznaki/awatary */
+  --color-accent-soft-bg: #F3FBF6; /* bardzo jasne tło paneli akcentowych (np. "Dla firm") */
+
+  /* --- Kolory pomocnicze --- */
+  --color-on-accent: #FFFFFF;     /* tekst na zielonym tle (przyciski, karta akcentowa) */
+  --color-copyright: #9A9089;     /* stopka — linia copyright */
+
+  /* --- Tło hero: delikatna, jasna poświata zamiast ciemnej sekcji --- */
+  --gradient-hero: radial-gradient(circle at 85% 15%, #DCF7E3 0%, #FFFFFF 55%);
+
+  /* --- Gradienty akcentowe (głębia na przyciskach/kartach) --- */
+  --gradient-accent: linear-gradient(135deg, #16A34A 0%, #0F7D3A 100%);
+  --gradient-topbar: linear-gradient(120deg, #0F7D3A 0%, #0B5C2A 100%);
+
+  /* --- Cienie (elewacja) --- */
+  --shadow-sm: 0 2px 10px rgba(28, 26, 24, 0.06);
+  --shadow-md: 0 16px 32px rgba(28, 26, 24, 0.10);
+  --shadow-lg: 0 28px 56px rgba(28, 26, 24, 0.14);
+  --shadow-accent: 0 10px 24px rgba(22, 163, 74, 0.28);
+
+  /* --- Typografia --- */
+  --font-heading: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-body: 'Public Sans', system-ui, -apple-system, sans-serif;
+
+  --fs-h1: 52px;
+  --fs-h2: 34px;
+  --fs-h2-sm: 28px;
+  --fs-h3: 18px;
+  --fs-body-lg: 18px;
+  --fs-body: 16px;
+  --fs-body-sm: 15px;
+  --fs-small: 14px;
+  --fs-xs: 13px;
+
+  --lh-tight: 1.12;
+  --lh-normal: 1.6;
+
+  /* --- Odstępy --- */
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 36px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  --space-4xl: 80px;
+  --space-5xl: 96px;
+
+  /* --- Promienie zaokrągleń --- */
+  --radius-sm: 8px;
+  --radius-card: 18px;
+  --radius-pill: 999px;
+
+  /* --- Kontener --- */
+  --container-max: 1160px;
+  --container-pad: 64px;
+  --container-pad-mobile: 20px;
+}

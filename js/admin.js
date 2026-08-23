@@ -1,0 +1,960 @@
+/* ==========================================================================
+   OwnEnglish — panel administracyjny i panel lektora (logowanie + edycja
+   treści w Supabase)
+   Ta strona (admin.html) NIE jest linkowana z publicznej nawigacji —
+   dostęp tylko po znajomości adresu. Prawdziwym zabezpieczeniem NIE jest
+   ukrycie linku, tylko reguły dostępu (RLS) w Supabase: kto co widzi
+   i może zapisać, zależy od roli konta (administrator / lektor) — patrz
+   supabase-setup.sql. Ta sama strona logowania obsługuje obie role:
+   po zalogowaniu skrypt sam sprawdza rolę i pokazuje właściwy panel.
+   ========================================================================== */
+
+(function () {
+  var loginSection = document.getElementById('admin-login');
+  var dashboardSection = document.getElementById('admin-dashboard');
+  var tutorDashboardSection = document.getElementById('tutor-dashboard');
+  var loginForm = document.getElementById('admin-login-form');
+  var loginError = document.getElementById('admin-login-error');
+  var registerForm = document.getElementById('tutor-register-form');
+  var registerError = document.getElementById('register-error');
+  var registerSuccess = document.getElementById('register-success');
+  var authModeToggle = document.getElementById('auth-mode-toggle');
+  var authHeading = document.getElementById('auth-heading');
+  var authSubtitle = document.getElementById('auth-subtitle');
+  var logoutBtn = document.getElementById('admin-logout');
+  var configWarning = document.getElementById('admin-config-warning');
+  var globalMessage = document.getElementById('admin-global-message');
+
+  function isConfigured() {
+    return (
+      window.SUPABASE_URL &&
+      window.SUPABASE_ANON_KEY &&
+      window.SUPABASE_URL.indexOf('TWOJ-PROJEKT') === -1 &&
+      window.SUPABASE_URL.indexOf('supabase.co') !== -1
+    );
+  }
+
+  if (!isConfigured() || !window.supabase) {
+    configWarning.style.display = 'block';
+    loginForm.querySelector('button[type="submit"]').disabled = true;
+    return;
+  }
+
+  var client = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+  var currentTutorRow = null; // profil lektora aktualnie zalogowanej osoby (null dla admina)
+
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function showMessage(el, text, kind) {
+    el.textContent = text;
+    el.className = 'admin-message is-' + kind;
+    el.style.display = 'block';
+    if (kind === 'success') {
+      setTimeout(function () { el.style.display = 'none'; }, 3000);
+    }
+  }
+
+  // ---------- PRZEŁĄCZNIK LOGOWANIE / REJESTRACJA LEKTORA ----------
+
+  var showingRegister = false;
+  function setAuthMode(register) {
+    showingRegister = register;
+    loginForm.style.display = showingRegister ? 'none' : 'flex';
+    registerForm.style.display = showingRegister ? 'flex' : 'none';
+    loginForm.style.flexDirection = 'column';
+    registerForm.style.flexDirection = 'column';
+    authHeading.textContent = showingRegister ? 'Zarejestruj się jako lektor' : 'Zaloguj się';
+    authSubtitle.textContent = showingRegister
+      ? 'Po rejestracji Twoje konto czeka na zatwierdzenie przez administratora — zobaczysz status od razu po zalogowaniu.'
+      : 'Panel administratora i lektorów. Konto administratora zakładasz w panelu Supabase (Authentication → Users) — konto lektora możesz założyć samodzielnie poniżej.';
+    authModeToggle.textContent = showingRegister ? 'Masz już konto? Zaloguj się' : 'Nie masz jeszcze konta? Zarejestruj się jako lektor';
+  }
+  authModeToggle.addEventListener('click', function () { setAuthMode(!showingRegister); });
+
+  // ---------- LOGOWANIE / REJESTRACJA / WYLOGOWANIE ----------
+
+  loginForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    loginError.style.display = 'none';
+    var email = document.getElementById('admin-email').value.trim();
+    var password = document.getElementById('admin-password').value;
+    client.auth.signInWithPassword({ email: email, password: password }).then(function (res) {
+      if (res.error) {
+        loginError.textContent = 'Nieprawidłowy e-mail lub hasło.';
+        loginError.style.display = 'block';
+        return;
+      }
+      routeAfterLogin(res.data.session);
+    });
+  });
+
+  registerForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    registerError.style.display = 'none';
+    registerSuccess.style.display = 'none';
+    var name = document.getElementById('register-name').value.trim();
+    var email = document.getElementById('register-email').value.trim();
+    var password = document.getElementById('register-password').value;
+    if (!name) { showMessage(registerError, 'Podaj imię i nazwisko.', 'error'); return; }
+
+    client.auth.signUp({ email: email, password: password }).then(function (res) {
+      if (res.error) {
+        showMessage(registerError, 'Błąd rejestracji: ' + res.error.message, 'error');
+        return;
+      }
+      var session = res.data && res.data.session;
+      var user = res.data && res.data.user;
+      if (session && user) {
+        // e-mail nie wymaga potwierdzenia — konto od razu zalogowane
+        ensureTutorProfile(user, name).then(function () { routeAfterLogin(session); });
+      } else {
+        // wymagane potwierdzenie e-maila — poprosimy o dane profilu przy pierwszym logowaniu
+        window.__pendingTutorName = name;
+        showMessage(registerSuccess, 'Konto utworzone! Sprawdź e-mail, żeby potwierdzić rejestrację, a potem zaloguj się tutaj.', 'success');
+        registerForm.reset();
+      }
+    });
+  });
+
+  logoutBtn.addEventListener('click', function () {
+    client.auth.signOut().then(function () { showLogin(); });
+  });
+
+  function showLogin() {
+    dashboardSection.style.display = 'none';
+    tutorDashboardSection.style.display = 'none';
+    loginSection.style.display = 'block';
+    logoutBtn.style.display = 'none';
+    setAuthMode(false);
+  }
+
+  // ---------- ROUTING WEDŁUG ROLI ----------
+
+  function isSessionAdmin(session) {
+    return !!(session && session.user && session.user.app_metadata && session.user.app_metadata.role === 'admin');
+  }
+
+  function ensureTutorProfile(user, fallbackName) {
+    return client.from('tutor_profiles').select('*').eq('user_id', user.id).then(function (res) {
+      if (res.data && res.data.length) return res.data[0];
+      var payload = {
+        user_id: user.id,
+        email: user.email || '',
+        account_status: 'pending',
+        pending_name: fallbackName || window.__pendingTutorName || ''
+      };
+      return client.from('tutor_profiles').insert(payload).select().then(function (insertRes) {
+        return (insertRes.data && insertRes.data[0]) || payload;
+      });
+    });
+  }
+
+  function routeAfterLogin(session) {
+    if (!session) { showLogin(); return; }
+    loginSection.style.display = 'none';
+    logoutBtn.style.display = 'inline-flex';
+
+    if (isSessionAdmin(session)) {
+      showAdminDashboard();
+    } else {
+      ensureTutorProfile(session.user).then(function (row) {
+        showTutorDashboard(row);
+      });
+    }
+  }
+
+  function showAdminDashboard() {
+    tutorDashboardSection.style.display = 'none';
+    dashboardSection.style.display = 'block';
+    loadTutorsAdmin();
+    loadScheduleAdmin();
+    loadPricingAdmin();
+    loadTestimonialsAdmin();
+    loadContactAdmin();
+    loadFaqAdmin();
+    loadSiteContentAdmin();
+    loadPhotoAdmin();
+    loadVideosAdmin();
+  }
+
+  client.auth.getSession().then(function (res) {
+    routeAfterLogin(res.data && res.data.session);
+  });
+
+  // ==========================================================================
+  // PANEL LEKTORA
+  // ==========================================================================
+
+  var tutorStatusBanner = document.getElementById('tutor-status-banner');
+  var tutorProfileWrap = document.getElementById('tutor-profile-wrap');
+  var tutorSubmissionStatus = document.getElementById('tutor-submission-status');
+  var tutorProfileForm = document.getElementById('tutor-profile-form');
+  var tutorPhotoInput = document.getElementById('tutor-photo-input');
+  var tutorPhotoPreview = document.getElementById('tutor-photo-preview');
+  var tutorPhotoMessage = document.getElementById('tutor-photo-message');
+
+  function showTutorDashboard(row) {
+    currentTutorRow = row;
+    dashboardSection.style.display = 'none';
+    tutorDashboardSection.style.display = 'block';
+
+    if (row.account_status === 'pending') {
+      tutorStatusBanner.style.display = 'block';
+      tutorStatusBanner.textContent = 'Twoje konto oczekuje na zatwierdzenie przez administratora. Wróć tutaj, gdy tylko dostaniesz od niego informację — wtedy pojawi się formularz profilu i grafik zajęć.';
+      tutorProfileWrap.style.display = 'none';
+      return;
+    }
+    if (row.account_status === 'rejected') {
+      tutorStatusBanner.style.display = 'block';
+      tutorStatusBanner.textContent = 'Administrator odrzucił Twoje konto' + (row.rejection_reason ? (': ' + row.rejection_reason) : '.') + ' Skontaktuj się z administratorem, jeśli to pomyłka.';
+      tutorProfileWrap.style.display = 'none';
+      return;
+    }
+
+    // account_status === 'approved'
+    tutorStatusBanner.style.display = 'none';
+    tutorProfileWrap.style.display = 'block';
+
+    document.getElementById('tutor-name').value = row.has_pending_submission ? row.pending_name : row.name;
+    document.getElementById('tutor-bio').value = row.has_pending_submission ? row.pending_bio : row.bio;
+    tutorPhotoPreview.src = (row.has_pending_submission && row.pending_photo_url) || row.photo_url || 'img/lektor-przyklad.svg';
+
+    if (row.has_pending_submission) {
+      tutorSubmissionStatus.innerHTML = '<span class="admin-message is-success" style="display:inline-block;">Zmiany oczekują na zatwierdzenie przez administratora.</span>';
+    } else if (row.published) {
+      tutorSubmissionStatus.innerHTML = '<span class="admin-message is-success" style="display:inline-block;">Twój profil jest zatwierdzony i widoczny publicznie na stronie „Nasz zespół”.</span>';
+    } else if (row.name || row.bio) {
+      tutorSubmissionStatus.innerHTML = '<span class="admin-message is-error" style="display:inline-block;">Ostatnie zgłoszenie zostało odrzucone' + (row.rejection_reason ? (': ' + escapeHtml(row.rejection_reason)) : '.') + ' Popraw dane i wyślij ponownie.</span>';
+    } else {
+      tutorSubmissionStatus.innerHTML = '<span class="text-muted" style="font-size:13px;">Nie wysłałeś jeszcze żadnych danych profilu.</span>';
+    }
+
+    loadTutorSchedule();
+  }
+
+  tutorProfileForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var payload = {
+      pending_name: document.getElementById('tutor-name').value.trim(),
+      pending_bio: document.getElementById('tutor-bio').value.trim(),
+      has_pending_submission: true
+    };
+    client.from('tutor_profiles').update(payload).eq('user_id', currentTutorRow.user_id).then(function (res) {
+      if (res.error) { showMessage(tutorSubmissionStatus, 'Błąd zapisu: ' + res.error.message, 'error'); return; }
+      Object.assign(currentTutorRow, payload);
+      showTutorDashboard(currentTutorRow);
+    });
+  });
+
+  tutorPhotoInput.addEventListener('change', function () {
+    var file = tutorPhotoInput.files && tutorPhotoInput.files[0];
+    if (!file || !currentTutorRow) return;
+    var ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    var path = 'tutor-photos/' + currentTutorRow.user_id + '/photo-' + Date.now() + '.' + ext;
+
+    showMessage(tutorPhotoMessage, 'Wgrywanie zdjęcia…', 'success');
+    tutorPhotoMessage.style.display = 'block';
+
+    client.storage.from('media').upload(path, file, { upsert: true }).then(function (uploadRes) {
+      if (uploadRes.error) { showMessage(tutorPhotoMessage, 'Błąd wgrywania: ' + uploadRes.error.message, 'error'); return; }
+      var publicUrlRes = client.storage.from('media').getPublicUrl(path);
+      var publicUrl = publicUrlRes.data && publicUrlRes.data.publicUrl;
+      if (!publicUrl) { showMessage(tutorPhotoMessage, 'Nie udało się pobrać adresu zdjęcia.', 'error'); return; }
+
+      client.from('tutor_profiles').update({ pending_photo_url: publicUrl, has_pending_submission: true }).eq('user_id', currentTutorRow.user_id).then(function (updateRes) {
+        if (updateRes.error) { showMessage(tutorPhotoMessage, 'Błąd zapisu zdjęcia: ' + updateRes.error.message, 'error'); return; }
+        currentTutorRow.pending_photo_url = publicUrl;
+        currentTutorRow.has_pending_submission = true;
+        showMessage(tutorPhotoMessage, 'Zdjęcie wysłane do zatwierdzenia.', 'success');
+        showTutorDashboard(currentTutorRow);
+      });
+    });
+  });
+
+  // ---------- GRAFIK ZAJĘĆ (WŁASNY, LEKTOR) ----------
+
+  function loadTutorSchedule() {
+    client
+      .from('lesson_schedule')
+      .select('*')
+      .eq('tutor_id', currentTutorRow.user_id)
+      .order('lesson_date', { ascending: true })
+      .then(function (res) {
+        if (res.error) return;
+        renderTutorSchedule(res.data);
+      });
+  }
+
+  function renderTutorSchedule(rows) {
+    var container = document.querySelector('[data-tutor-schedule]');
+    if (!container) return;
+    container.innerHTML = rows.map(function (r) {
+      return (
+        '<div class="admin-row" data-row-id="' + r.id + '">' +
+        '<span style="min-width:110px;">' + escapeHtml(r.lesson_date) + (r.lesson_time ? ' ' + escapeHtml(r.lesson_time) : '') + '</span>' +
+        '<span style="flex:1 1 140px;">' + escapeHtml(r.student_name) + '</span>' +
+        '<span class="text-muted" style="flex:1 1 160px; font-size:13px;">' + escapeHtml(r.notes) + '</span>' +
+        '<button type="button" class="btn btn-danger btn-xs" data-action="delete-lesson">Usuń</button>' +
+        '</div>'
+      );
+    }).join('') || '<p class="text-muted" style="font-size:13px;">Brak zaplanowanych zajęć.</p>';
+
+    container.querySelectorAll('[data-action="delete-lesson"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = Number(btn.closest('.admin-row').getAttribute('data-row-id'));
+        client.from('lesson_schedule').delete().eq('id', id).then(function (res) {
+          if (res.error) return;
+          loadTutorSchedule();
+        });
+      });
+    });
+  }
+
+  var addLessonBtn = document.querySelector('[data-action="add-lesson"]');
+  if (addLessonBtn) {
+    addLessonBtn.addEventListener('click', function () {
+      var inputs = document.querySelectorAll('[data-new-lesson]');
+      var payload = { tutor_id: currentTutorRow.user_id };
+      inputs.forEach(function (input) { payload[input.getAttribute('data-field')] = input.value.trim(); });
+      if (!payload.student_name || !payload.lesson_date) { return; }
+      client.from('lesson_schedule').insert(payload).then(function (res) {
+        if (res.error) return;
+        inputs.forEach(function (input) { input.value = ''; });
+        loadTutorSchedule();
+      });
+    });
+  }
+
+  // ==========================================================================
+  // PANEL ADMINA — ZARZĄDZANIE LEKTORAMI I GRAFIKIEM
+  // ==========================================================================
+
+  function loadTutorsAdmin() {
+    client
+      .from('tutor_profiles')
+      .select('*')
+      .order('created_at', { ascending: true })
+      .then(function (res) {
+        if (res.error) {
+          showMessage(globalMessage, 'Błąd wczytywania lektorów: ' + res.error.message, 'error');
+          return;
+        }
+        renderTutorsAdmin(res.data);
+      });
+  }
+
+  function tutorStatusBadge(row) {
+    if (row.account_status === 'pending') return '<span class="badge badge-outline">Konto: oczekuje</span>';
+    if (row.account_status === 'rejected') return '<span class="badge badge-outline">Konto: odrzucone</span>';
+    return '<span class="badge badge-outline">Konto: zatwierdzone</span>';
+  }
+
+  function renderTutorsAdmin(rows) {
+    var container = document.querySelector('[data-admin-tutors]');
+    if (!container) return;
+    latestTutorRows = rows;
+    container.innerHTML = rows.map(function (t) {
+      var displayName = t.name || t.pending_name || '(bez nazwy)';
+      var actions = '';
+      if (t.account_status === 'pending') {
+        actions += '<button type="button" class="btn btn-outline btn-xs" data-action="approve-account">Zatwierdź konto</button>';
+        actions += '<button type="button" class="btn btn-danger btn-xs" data-action="reject-account">Odrzuć konto</button>';
+      }
+      if (t.has_pending_submission) {
+        actions += '<button type="button" class="btn btn-outline btn-xs" data-action="approve-submission">Zatwierdź zmiany profilu</button>';
+        actions += '<button type="button" class="btn btn-danger btn-xs" data-action="reject-submission">Odrzuć zmiany</button>';
+      }
+      if (t.account_status === 'approved') {
+        actions += '<label class="admin-checkbox"><input type="checkbox" data-field="published"' + (t.published ? ' checked' : '') + '> opublikowany</label>';
+      }
+      actions += '<button type="button" class="btn btn-danger btn-xs" data-action="delete-tutor">Usuń konto</button>';
+
+      var pendingPreview = t.has_pending_submission
+        ? '<div class="text-muted" style="font-size:13px; margin-top:6px;">Zgłoszone dane: <strong>' + escapeHtml(t.pending_name || '—') + '</strong> — ' + escapeHtml((t.pending_bio || '').slice(0, 140)) + (t.pending_photo_url ? ' · zdjęcie dołączone' : '') + '</div>'
+        : '';
+
+      return (
+        '<div class="admin-row-testimonial" data-row-id="' + t.id + '" data-user-id="' + escapeHtml(t.user_id) + '" style="flex-direction:column; align-items:stretch;">' +
+        '<div class="row-wrap gap-sm" style="align-items:center;">' +
+        '<strong>' + escapeHtml(displayName) + '</strong>' +
+        '<span class="text-muted" style="font-size:13px;">' + escapeHtml(t.email) + '</span>' +
+        tutorStatusBadge(t) +
+        '</div>' +
+        pendingPreview +
+        '<div class="row-wrap gap-sm" style="margin-top:8px;">' + actions + '</div>' +
+        '</div>'
+      );
+    }).join('') || '<p class="text-muted" style="font-size:13px;">Brak zarejestrowanych lektorów.</p>';
+
+    container.querySelectorAll('[data-action="approve-account"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        updateTutor(btn, { account_status: 'approved', rejection_reason: '' });
+      });
+    });
+    container.querySelectorAll('[data-action="reject-account"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var reason = window.prompt('Powód odrzucenia konta (opcjonalnie):', '') || '';
+        updateTutor(btn, { account_status: 'rejected', rejection_reason: reason });
+      });
+    });
+    container.querySelectorAll('[data-action="approve-submission"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = findTutorRow(btn);
+        updateTutor(btn, {
+          name: row.pending_name,
+          bio: row.pending_bio,
+          photo_url: row.pending_photo_url || row.photo_url,
+          has_pending_submission: false,
+          published: true,
+          rejection_reason: ''
+        });
+      });
+    });
+    container.querySelectorAll('[data-action="reject-submission"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var reason = window.prompt('Powód odrzucenia zgłoszonych zmian (opcjonalnie):', '') || '';
+        updateTutor(btn, { has_pending_submission: false, rejection_reason: reason });
+      });
+    });
+    container.querySelectorAll('[data-field="published"]').forEach(function (checkbox) {
+      checkbox.addEventListener('change', function () {
+        updateTutor(checkbox, { published: checkbox.checked });
+      });
+    });
+    container.querySelectorAll('[data-action="delete-tutor"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row-testimonial');
+        var id = Number(row.getAttribute('data-row-id'));
+        client.from('tutor_profiles').delete().eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd usuwania: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Usunięto konto lektora.', 'success');
+          loadTutorsAdmin();
+        });
+      });
+    });
+  }
+
+  var latestTutorRows = [];
+  function findTutorRow(el) {
+    var row = el.closest('.admin-row-testimonial');
+    var id = Number(row.getAttribute('data-row-id'));
+    return latestTutorRows.filter(function (r) { return r.id === id; })[0] || {};
+  }
+
+  function updateTutor(el, payload) {
+    var row = el.closest('.admin-row-testimonial');
+    var id = Number(row.getAttribute('data-row-id'));
+    client.from('tutor_profiles').update(payload).eq('id', id).then(function (res) {
+      if (res.error) { showMessage(globalMessage, 'Błąd zapisu: ' + res.error.message, 'error'); return; }
+      showMessage(globalMessage, 'Zapisano zmianę.', 'success');
+      loadTutorsAdmin();
+    });
+  }
+
+  // ---------- GRAFIK ZAJĘĆ (WSZYSCY LEKTORZY, ADMIN) ----------
+
+  function loadScheduleAdmin() {
+    Promise.all([
+      client.from('lesson_schedule').select('*').order('lesson_date', { ascending: true }),
+      client.from('tutor_profiles').select('*')
+    ]).then(function (results) {
+      var scheduleRes = results[0];
+      var tutorsRes = results[1];
+      if (scheduleRes.error) {
+        showMessage(globalMessage, 'Błąd wczytywania grafiku: ' + scheduleRes.error.message, 'error');
+        return;
+      }
+      var tutorsByUserId = {};
+      (tutorsRes.data || []).forEach(function (t) { tutorsByUserId[t.user_id] = t; });
+      renderScheduleAdmin(scheduleRes.data, tutorsByUserId);
+    });
+  }
+
+  function renderScheduleAdmin(rows, tutorsByUserId) {
+    var container = document.querySelector('[data-admin-schedule]');
+    if (!container) return;
+    container.innerHTML = rows.map(function (r) {
+      var tutor = tutorsByUserId[r.tutor_id];
+      var tutorName = tutor ? (tutor.name || tutor.pending_name || tutor.email) : r.tutor_id;
+      return (
+        '<div class="admin-row" data-row-id="' + r.id + '">' +
+        '<strong style="min-width:130px;">' + escapeHtml(tutorName) + '</strong>' +
+        '<span style="min-width:110px;">' + escapeHtml(r.lesson_date) + (r.lesson_time ? ' ' + escapeHtml(r.lesson_time) : '') + '</span>' +
+        '<span style="flex:1 1 120px;">' + escapeHtml(r.student_name) + '</span>' +
+        '<span class="text-muted" style="flex:1 1 160px; font-size:13px;">' + escapeHtml(r.notes) + '</span>' +
+        '<button type="button" class="btn btn-danger btn-xs" data-action="delete-schedule-entry">Usuń</button>' +
+        '</div>'
+      );
+    }).join('') || '<p class="text-muted" style="font-size:13px;">Brak wpisów w grafiku.</p>';
+
+    container.querySelectorAll('[data-action="delete-schedule-entry"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = Number(btn.closest('.admin-row').getAttribute('data-row-id'));
+        client.from('lesson_schedule').delete().eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd usuwania: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Usunięto wpis z grafiku.', 'success');
+          loadScheduleAdmin();
+        });
+      });
+    });
+  }
+
+  // ---------- CENNIK ----------
+
+  function loadPricingAdmin() {
+    client
+      .from('pricing_packages')
+      .select('*')
+      .order('category', { ascending: true })
+      .order('sort_order', { ascending: true })
+      .then(function (res) {
+        if (res.error) {
+          showMessage(globalMessage, 'Błąd wczytywania cennika: ' + res.error.message, 'error');
+          return;
+        }
+        renderPricingTable('individual', res.data.filter(function (r) { return r.category === 'individual'; }));
+        renderPricingTable('group', res.data.filter(function (r) { return r.category === 'group'; }));
+      });
+  }
+
+  function renderPricingTable(category, rows) {
+    var container = document.querySelector('[data-admin-pricing="' + category + '"]');
+    if (!container) return;
+    container.innerHTML = rows.map(function (r) {
+      return (
+        '<div class="admin-row" data-row-id="' + r.id + '">' +
+        '<input type="text" value="' + escapeHtml(r.name) + '" data-field="name">' +
+        '<input type="text" value="' + escapeHtml(r.detail) + '" data-field="detail">' +
+        '<input type="text" value="' + escapeHtml(r.price) + '" data-field="price">' +
+        '<button type="button" class="btn btn-outline btn-xs" data-action="save-pricing">Zapisz</button>' +
+        '<button type="button" class="btn btn-danger btn-xs" data-action="delete-pricing">Usuń</button>' +
+        '</div>'
+      );
+    }).join('') || '<p class="text-muted" style="font-size:13px;">Brak pakietów w tej kategorii.</p>';
+
+    container.querySelectorAll('[data-action="save-pricing"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row');
+        var id = Number(row.getAttribute('data-row-id'));
+        var payload = {
+          name: row.querySelector('[data-field="name"]').value.trim(),
+          detail: row.querySelector('[data-field="detail"]').value.trim(),
+          price: row.querySelector('[data-field="price"]').value.trim()
+        };
+        client.from('pricing_packages').update(payload).eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd zapisu: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Zapisano pakiet cenowy.', 'success');
+        });
+      });
+    });
+
+    container.querySelectorAll('[data-action="delete-pricing"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row');
+        var id = Number(row.getAttribute('data-row-id'));
+        client.from('pricing_packages').delete().eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd usuwania: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Usunięto pakiet cenowy.', 'success');
+          loadPricingAdmin();
+        });
+      });
+    });
+  }
+
+  document.querySelectorAll('[data-action="add-pricing"]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var category = btn.getAttribute('data-category');
+      var inputs = document.querySelectorAll('[data-new-pricing="' + category + '"]');
+      var payload = { category: category, sort_order: 999 };
+      inputs.forEach(function (input) { payload[input.getAttribute('data-field')] = input.value.trim(); });
+      if (!payload.name) { showMessage(globalMessage, 'Podaj przynajmniej nazwę pakietu.', 'error'); return; }
+      client.from('pricing_packages').insert(payload).then(function (res) {
+        if (res.error) { showMessage(globalMessage, 'Błąd dodawania: ' + res.error.message, 'error'); return; }
+        inputs.forEach(function (input) { input.value = ''; });
+        showMessage(globalMessage, 'Dodano nowy pakiet cenowy.', 'success');
+        loadPricingAdmin();
+      });
+    });
+  });
+
+  // ---------- OPINIE ----------
+
+  function loadTestimonialsAdmin() {
+    client
+      .from('testimonials')
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .then(function (res) {
+        if (res.error) {
+          showMessage(globalMessage, 'Błąd wczytywania opinii: ' + res.error.message, 'error');
+          return;
+        }
+        renderTestimonials(res.data);
+      });
+  }
+
+  function renderTestimonials(rows) {
+    var container = document.querySelector('[data-admin-testimonials]');
+    if (!container) return;
+    container.innerHTML = rows.map(function (t) {
+      return (
+        '<div class="admin-row-testimonial" data-row-id="' + t.id + '">' +
+        '<textarea data-field="quote">' + escapeHtml(t.quote) + '</textarea>' +
+        '<input type="text" value="' + escapeHtml(t.name) + '" data-field="name">' +
+        '<input type="text" value="' + escapeHtml(t.role) + '" data-field="role">' +
+        '<input type="text" value="' + escapeHtml(t.initials) + '" data-field="initials" style="max-width:90px;">' +
+        '<label class="admin-checkbox"><input type="checkbox" data-field="published"' + (t.published ? ' checked' : '') + '> opublikowana</label>' +
+        '<button type="button" class="btn btn-outline btn-xs" data-action="save-testimonial">Zapisz</button>' +
+        '<button type="button" class="btn btn-danger btn-xs" data-action="delete-testimonial">Usuń</button>' +
+        '</div>'
+      );
+    }).join('') || '<p class="text-muted" style="font-size:13px;">Brak zapisanych opinii.</p>';
+
+    container.querySelectorAll('[data-action="save-testimonial"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row-testimonial');
+        var id = Number(row.getAttribute('data-row-id'));
+        var payload = {
+          quote: row.querySelector('[data-field="quote"]').value.trim(),
+          name: row.querySelector('[data-field="name"]').value.trim(),
+          role: row.querySelector('[data-field="role"]').value.trim(),
+          initials: row.querySelector('[data-field="initials"]').value.trim(),
+          published: row.querySelector('[data-field="published"]').checked
+        };
+        client.from('testimonials').update(payload).eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd zapisu: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Zapisano opinię.', 'success');
+        });
+      });
+    });
+
+    container.querySelectorAll('[data-action="delete-testimonial"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row-testimonial');
+        var id = Number(row.getAttribute('data-row-id'));
+        client.from('testimonials').delete().eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd usuwania: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Usunięto opinię.', 'success');
+          loadTestimonialsAdmin();
+        });
+      });
+    });
+  }
+
+  var addTestimonialBtn = document.querySelector('[data-action="add-testimonial"]');
+  if (addTestimonialBtn) {
+    addTestimonialBtn.addEventListener('click', function () {
+      var inputs = document.querySelectorAll('[data-new-testimonial]');
+      var payload = { sort_order: 999, published: true };
+      inputs.forEach(function (input) { payload[input.getAttribute('data-field')] = input.value.trim(); });
+      if (!payload.quote || !payload.name) { showMessage(globalMessage, 'Podaj przynajmniej treść opinii i imię.', 'error'); return; }
+      client.from('testimonials').insert(payload).then(function (res) {
+        if (res.error) { showMessage(globalMessage, 'Błąd dodawania: ' + res.error.message, 'error'); return; }
+        inputs.forEach(function (input) { input.value = ''; });
+        showMessage(globalMessage, 'Dodano nową opinię.', 'success');
+        loadTestimonialsAdmin();
+      });
+    });
+  }
+
+  // ---------- DANE KONTAKTOWE ----------
+
+  function loadContactAdmin() {
+    client.from('contact_info').select('*').eq('id', 1).single().then(function (res) {
+      if (res.error || !res.data) return;
+      document.getElementById('admin-contact-email').value = res.data.email || '';
+      document.getElementById('admin-contact-phone').value = res.data.phone || '';
+      document.getElementById('admin-contact-location').value = res.data.location || '';
+    });
+  }
+
+  var contactForm = document.getElementById('admin-contact-form');
+  contactForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var payload = {
+      id: 1,
+      email: document.getElementById('admin-contact-email').value.trim(),
+      phone: document.getElementById('admin-contact-phone').value.trim(),
+      location: document.getElementById('admin-contact-location').value.trim()
+    };
+    client.from('contact_info').upsert(payload).then(function (res) {
+      if (res.error) { showMessage(globalMessage, 'Błąd zapisu danych kontaktowych: ' + res.error.message, 'error'); return; }
+      showMessage(globalMessage, 'Zapisano dane kontaktowe.', 'success');
+    });
+  });
+
+  // ---------- FAQ ----------
+
+  function loadFaqAdmin() {
+    client
+      .from('faq_items')
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .then(function (res) {
+        if (res.error) {
+          showMessage(globalMessage, 'Błąd wczytywania FAQ: ' + res.error.message, 'error');
+          return;
+        }
+        renderFaq(res.data);
+      });
+  }
+
+  function renderFaq(rows) {
+    var container = document.querySelector('[data-admin-faq]');
+    if (!container) return;
+    container.innerHTML = rows.map(function (f) {
+      return (
+        '<div class="admin-row-testimonial" data-row-id="' + f.id + '">' +
+        '<input type="text" value="' + escapeHtml(f.question) + '" data-field="question">' +
+        '<textarea data-field="answer">' + escapeHtml(f.answer) + '</textarea>' +
+        '<label class="admin-checkbox"><input type="checkbox" data-field="published"' + (f.published ? ' checked' : '') + '> opublikowane</label>' +
+        '<button type="button" class="btn btn-outline btn-xs" data-action="save-faq">Zapisz</button>' +
+        '<button type="button" class="btn btn-danger btn-xs" data-action="delete-faq">Usuń</button>' +
+        '</div>'
+      );
+    }).join('') || '<p class="text-muted" style="font-size:13px;">Brak zapisanych pytań.</p>';
+
+    container.querySelectorAll('[data-action="save-faq"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row-testimonial');
+        var id = Number(row.getAttribute('data-row-id'));
+        var payload = {
+          question: row.querySelector('[data-field="question"]').value.trim(),
+          answer: row.querySelector('[data-field="answer"]').value.trim(),
+          published: row.querySelector('[data-field="published"]').checked
+        };
+        client.from('faq_items').update(payload).eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd zapisu: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Zapisano pytanie.', 'success');
+        });
+      });
+    });
+
+    container.querySelectorAll('[data-action="delete-faq"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row-testimonial');
+        var id = Number(row.getAttribute('data-row-id'));
+        client.from('faq_items').delete().eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd usuwania: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Usunięto pytanie.', 'success');
+          loadFaqAdmin();
+        });
+      });
+    });
+  }
+
+  var addFaqBtn = document.querySelector('[data-action="add-faq"]');
+  if (addFaqBtn) {
+    addFaqBtn.addEventListener('click', function () {
+      var inputs = document.querySelectorAll('[data-new-faq]');
+      var payload = { sort_order: 999, published: true };
+      inputs.forEach(function (input) { payload[input.getAttribute('data-field')] = input.value.trim(); });
+      if (!payload.question || !payload.answer) { showMessage(globalMessage, 'Podaj treść pytania i odpowiedzi.', 'error'); return; }
+      client.from('faq_items').insert(payload).then(function (res) {
+        if (res.error) { showMessage(globalMessage, 'Błąd dodawania: ' + res.error.message, 'error'); return; }
+        inputs.forEach(function (input) { input.value = ''; });
+        showMessage(globalMessage, 'Dodano nowe pytanie.', 'success');
+        loadFaqAdmin();
+      });
+    });
+  }
+
+  // ---------- TREŚCI STRON (site_content) ----------
+
+  function loadSiteContentAdmin() {
+    client
+      .from('site_content')
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .then(function (res) {
+        if (res.error) {
+          showMessage(globalMessage, 'Błąd wczytywania treści: ' + res.error.message, 'error');
+          return;
+        }
+        renderSiteContent(res.data.filter(function (r) { return r.key !== 'lektor_photo_url'; }));
+      });
+  }
+
+  function renderSiteContent(rows) {
+    var container = document.querySelector('[data-admin-content]');
+    if (!container) return;
+    container.innerHTML = rows.map(function (r) {
+      var field = r.input_type === 'textarea'
+        ? '<textarea data-field="value" rows="3">' + escapeHtml(r.value) + '</textarea>'
+        : '<input type="text" value="' + escapeHtml(r.value) + '" data-field="value">';
+      return (
+        '<div class="admin-content-row" data-row-id="' + r.id + '">' +
+        '<label class="admin-content-label">' + escapeHtml(r.label) + '</label>' +
+        field +
+        '<button type="button" class="btn btn-outline btn-xs" data-action="save-content" style="width:fit-content;">Zapisz</button>' +
+        '</div>'
+      );
+    }).join('');
+
+    container.querySelectorAll('[data-action="save-content"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-content-row');
+        var id = Number(row.getAttribute('data-row-id'));
+        var value = row.querySelector('[data-field="value"]').value.trim();
+        client.from('site_content').update({ value: value }).eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd zapisu: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Zapisano treść.', 'success');
+        });
+      });
+    });
+  }
+
+  // ---------- ZDJĘCIE LEKTORA ----------
+
+  function loadPhotoAdmin() {
+    var preview = document.getElementById('admin-photo-preview');
+    if (!preview) return;
+    client.from('site_content').select('*').eq('key', 'lektor_photo_url').single().then(function (res) {
+      if (res.error || !res.data || !res.data.value) return;
+      preview.src = res.data.value;
+    });
+  }
+
+  var photoInput = document.getElementById('admin-photo-input');
+  if (photoInput) {
+    photoInput.addEventListener('change', function () {
+      var file = photoInput.files && photoInput.files[0];
+      if (!file) return;
+      var msg = document.getElementById('admin-photo-message');
+      var preview = document.getElementById('admin-photo-preview');
+      var ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      var path = 'lektor-' + Date.now() + '.' + ext;
+
+      showMessage(msg, 'Wgrywanie zdjęcia…', 'success');
+      msg.style.display = 'block';
+
+      client.storage.from('media').upload(path, file, { upsert: true }).then(function (uploadRes) {
+        if (uploadRes.error) { showMessage(msg, 'Błąd wgrywania: ' + uploadRes.error.message, 'error'); return; }
+        var publicUrlRes = client.storage.from('media').getPublicUrl(path);
+        var publicUrl = publicUrlRes.data && publicUrlRes.data.publicUrl;
+        if (!publicUrl) { showMessage(msg, 'Nie udało się pobrać adresu zdjęcia.', 'error'); return; }
+
+        client.from('site_content').update({ value: publicUrl }).eq('key', 'lektor_photo_url').then(function (updateRes) {
+          if (updateRes.error) { showMessage(msg, 'Błąd zapisu adresu zdjęcia: ' + updateRes.error.message, 'error'); return; }
+          preview.src = publicUrl;
+          showMessage(msg, 'Zdjęcie zaktualizowane — widoczne na stronie głównej i „O mnie”.', 'success');
+        });
+      });
+    });
+  }
+
+  // ---------- FILMIKI - LEKCJE ----------
+
+  function parseYoutubeId(input) {
+    input = (input || '').trim();
+    if (!input) return '';
+    // Już samo ID (11 znaków, litery/cyfry/-/_)
+    if (/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
+    var patterns = [
+      /[?&]v=([a-zA-Z0-9_-]{11})/,
+      /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+      /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+      /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/
+    ];
+    for (var i = 0; i < patterns.length; i++) {
+      var m = input.match(patterns[i]);
+      if (m) return m[1];
+    }
+    return '';
+  }
+
+  function loadVideosAdmin() {
+    client
+      .from('video_lessons')
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .then(function (res) {
+        if (res.error) {
+          showMessage(globalMessage, 'Błąd wczytywania lekcji wideo: ' + res.error.message, 'error');
+          return;
+        }
+        renderVideos(res.data);
+      });
+  }
+
+  function renderVideos(rows) {
+    var container = document.querySelector('[data-admin-videos]');
+    if (!container) return;
+    container.innerHTML = rows.map(function (v) {
+      return (
+        '<div class="admin-row-testimonial" data-row-id="' + v.id + '">' +
+        '<input type="text" value="' + escapeHtml(v.title) + '" data-field="title" placeholder="Tytuł">' +
+        '<textarea data-field="description" placeholder="Opis">' + escapeHtml(v.description) + '</textarea>' +
+        '<input type="text" value="https://youtu.be/' + escapeHtml(v.youtube_id) + '" data-field="youtube_url" placeholder="Link do filmu na YouTube">' +
+        '<input type="text" value="' + escapeHtml(v.level) + '" data-field="level" placeholder="Poziom (np. B1)" style="max-width:140px;">' +
+        '<label class="admin-checkbox"><input type="checkbox" data-field="published"' + (v.published ? ' checked' : '') + '> opublikowana</label>' +
+        '<button type="button" class="btn btn-outline btn-xs" data-action="save-video">Zapisz</button>' +
+        '<button type="button" class="btn btn-danger btn-xs" data-action="delete-video">Usuń</button>' +
+        '</div>'
+      );
+    }).join('') || '<p class="text-muted" style="font-size:13px;">Brak dodanych lekcji wideo.</p>';
+
+    container.querySelectorAll('[data-action="save-video"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row-testimonial');
+        var id = Number(row.getAttribute('data-row-id'));
+        var youtubeId = parseYoutubeId(row.querySelector('[data-field="youtube_url"]').value);
+        if (!youtubeId) { showMessage(globalMessage, 'Nie rozpoznano linku do YouTube — sprawdź, czy jest poprawny.', 'error'); return; }
+        var payload = {
+          title: row.querySelector('[data-field="title"]').value.trim(),
+          description: row.querySelector('[data-field="description"]').value.trim(),
+          youtube_id: youtubeId,
+          level: row.querySelector('[data-field="level"]').value.trim(),
+          published: row.querySelector('[data-field="published"]').checked
+        };
+        client.from('video_lessons').update(payload).eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd zapisu: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Zapisano lekcję wideo.', 'success');
+          loadVideosAdmin();
+        });
+      });
+    });
+
+    container.querySelectorAll('[data-action="delete-video"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row-testimonial');
+        var id = Number(row.getAttribute('data-row-id'));
+        client.from('video_lessons').delete().eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd usuwania: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Usunięto lekcję wideo.', 'success');
+          loadVideosAdmin();
+        });
+      });
+    });
+  }
+
+  var addVideoBtn = document.querySelector('[data-action="add-video"]');
+  if (addVideoBtn) {
+    addVideoBtn.addEventListener('click', function () {
+      var inputs = document.querySelectorAll('[data-new-video]');
+      var raw = {};
+      inputs.forEach(function (input) { raw[input.getAttribute('data-field')] = input.value.trim(); });
+      var youtubeId = parseYoutubeId(raw.youtube_url);
+      if (!raw.title || !youtubeId) { showMessage(globalMessage, 'Podaj tytuł i poprawny link do filmu na YouTube.', 'error'); return; }
+      var payload = {
+        title: raw.title,
+        description: raw.description || '',
+        youtube_id: youtubeId,
+        level: raw.level || '',
+        sort_order: 999,
+        published: true
+      };
+      client.from('video_lessons').insert(payload).then(function (res) {
+        if (res.error) { showMessage(globalMessage, 'Błąd dodawania: ' + res.error.message, 'error'); return; }
+        inputs.forEach(function (input) { input.value = ''; });
+        showMessage(globalMessage, 'Dodano nową lekcję wideo.', 'success');
+        loadVideosAdmin();
+      });
+    });
+  }
+})();

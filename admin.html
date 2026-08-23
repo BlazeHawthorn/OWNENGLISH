@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel administracyjny — OwnEnglish</title>
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+
+  <div class="container">
+    <div class="admin-topbar">
+      <a href="index.html" class="logo">
+        <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 10C8 7.79 9.79 6 12 6H28C30.21 6 32 7.79 32 10V22C32 24.21 30.21 26 28 26H16L9 32V26H12C9.79 26 8 24.21 8 22V10Z" stroke="#16A34A" stroke-width="2.4" stroke-linejoin="round"/>
+          <path d="M13.5 14.5C13.5 14.5 15.5 12.3 18 14.5C20.5 16.7 22.5 12.3 25 14.5" stroke="#16A34A" stroke-width="2.1" stroke-linecap="round"/>
+          <path d="M13.5 19.5H24.5" stroke="#16A34A" stroke-width="2.1" stroke-linecap="round"/>
+        </svg>
+        <span class="logo-text">OwnEnglish</span>
+      </a>
+      <span class="text-muted" style="font-size:13px; font-weight:600;">Panel administracyjny</span>
+      <button id="admin-logout" type="button" class="btn btn-outline btn-sm" style="display:none;">Wyloguj się</button>
+    </div>
+  </div>
+
+  <!-- LOGOWANIE / REJESTRACJA -->
+  <div id="admin-login" class="container">
+    <div class="admin-login-wrap card stack gap-md" style="gap:20px;">
+      <div class="stack gap-xs">
+        <span class="eyebrow">Panel OwnEnglish</span>
+        <h1 id="auth-heading" class="h2-sm">Zaloguj się</h1>
+        <p id="auth-subtitle" class="text-muted" style="font-size:14px;">Panel administratora i lektorów. Konto administratora zakładasz w panelu Supabase (Authentication → Users) — konto lektora możesz założyć samodzielnie poniżej.</p>
+      </div>
+
+      <div id="admin-config-warning" class="admin-config-warning" style="display:none;">
+        Panel nie jest jeszcze podłączony — brakuje danych połączenia z Supabase w pliku <code>js/supabase-config.js</code>. Zobacz instrukcję w <code>decyzje-projektowe.md</code> albo w pliku <code>supabase-setup.sql</code>.
+      </div>
+
+      <form id="admin-login-form" class="stack gap-md" style="gap:16px;">
+        <div class="field">
+          <label for="admin-email">E-mail</label>
+          <input type="email" id="admin-email" name="admin-email" placeholder="ty@ownenglish.pl" required autocomplete="username">
+        </div>
+        <div class="field">
+          <label for="admin-password">Hasło</label>
+          <input type="password" id="admin-password" name="admin-password" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+        <div id="admin-login-error" class="admin-message is-error" style="display:none;"></div>
+        <button type="submit" class="btn btn-primary" style="width:100%;">Zaloguj się</button>
+      </form>
+
+      <form id="tutor-register-form" class="stack gap-md" style="gap:16px; display:none;">
+        <div class="field">
+          <label for="register-name">Imię i nazwisko</label>
+          <input type="text" id="register-name" name="register-name" placeholder="np. Anna Kowalska" required autocomplete="name">
+        </div>
+        <div class="field">
+          <label for="register-email">E-mail</label>
+          <input type="email" id="register-email" name="register-email" placeholder="ty@example.com" required autocomplete="username">
+        </div>
+        <div class="field">
+          <label for="register-password">Hasło</label>
+          <input type="password" id="register-password" name="register-password" placeholder="min. 6 znaków" required autocomplete="new-password" minlength="6">
+        </div>
+        <div id="register-error" class="admin-message is-error" style="display:none;"></div>
+        <div id="register-success" class="admin-message is-success" style="display:none;"></div>
+        <button type="submit" class="btn btn-primary" style="width:100%;">Zarejestruj się jako lektor</button>
+      </form>
+
+      <button type="button" id="auth-mode-toggle" class="btn-link" style="text-align:center; width:100%;">Nie masz jeszcze konta? Zarejestruj się jako lektor</button>
+    </div>
+  </div>
+
+  <!-- PANEL LEKTORA -->
+  <div id="tutor-dashboard" class="container" style="display:none; padding-top:40px; padding-bottom:80px; max-width:720px;">
+    <div id="tutor-status-banner" class="admin-config-warning" style="margin-bottom:24px;"></div>
+
+    <div id="tutor-profile-wrap" style="display:none;">
+      <section class="card" style="margin-bottom:32px;">
+        <h2 class="h2-sm" style="margin-bottom:6px;">Twój profil</h2>
+        <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Każda zmiana wysyłana jest do zatwierdzenia przez administratora, zanim pojawi się publicznie na stronie „Nasz zespół”.</p>
+        <div id="tutor-submission-status" style="margin-bottom:16px;"></div>
+        <form id="tutor-profile-form" class="stack gap-md" style="gap:16px;">
+          <div class="field">
+            <label for="tutor-name">Imię i nazwisko</label>
+            <input type="text" id="tutor-name" placeholder="np. Anna Kowalska">
+          </div>
+          <div class="field">
+            <label for="tutor-bio">O mnie</label>
+            <textarea id="tutor-bio" rows="4" placeholder="Kilka zdań o Twoim doświadczeniu i podejściu do nauczania"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:fit-content;">Wyślij do zatwierdzenia</button>
+        </form>
+        <div class="admin-photo-upload" style="margin-top:20px;">
+          <img id="tutor-photo-preview" src="img/lektor-przyklad.svg" alt="Podgląd zdjęcia profilowego">
+          <div class="stack gap-sm">
+            <input type="file" id="tutor-photo-input" accept="image/png, image/jpeg, image/webp">
+            <div id="tutor-photo-message" class="admin-message" style="display:none;"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" style="margin-bottom:32px;">
+        <h2 class="h2-sm" style="margin-bottom:6px;">Twój grafik zajęć</h2>
+        <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Widoczny tylko dla Ciebie i administratora — nie jest publikowany na stronie.</p>
+        <div data-tutor-schedule></div>
+        <div class="admin-add-row">
+          <input type="text" data-new-lesson data-field="student_name" placeholder="Imię ucznia">
+          <input type="date" data-new-lesson data-field="lesson_date">
+          <input type="time" data-new-lesson data-field="lesson_time">
+          <input type="text" data-new-lesson data-field="notes" placeholder="Notatka (opcjonalnie)">
+          <button type="button" class="btn btn-primary btn-sm" data-action="add-lesson">+ Dodaj zajęcia</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- DASHBOARD ADMINA -->
+  <div id="admin-dashboard" class="container" style="display:none; padding-top:40px; padding-bottom:80px;">
+
+    <div id="admin-global-message" class="admin-message" style="margin-bottom:24px;"></div>
+
+    <!-- LEKTORZY -->
+    <section class="card" style="margin-bottom:32px;">
+      <h2 class="h2-sm" style="margin-bottom:6px;">Lektorzy</h2>
+      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Nowe konta czekają na zatwierdzenie, zanim lektor będzie mógł cokolwiek opublikować. Zmiany profilu (imię/opis/zdjęcie) też wymagają Twojej akceptacji za każdym razem.</p>
+      <div data-admin-tutors></div>
+    </section>
+
+    <!-- GRAFIK ZAJĘĆ (WSZYSCY LEKTORZY) -->
+    <section class="card" style="margin-bottom:32px;">
+      <h2 class="h2-sm" style="margin-bottom:6px;">Grafik zajęć — wszyscy lektorzy</h2>
+      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Podgląd i edycja wpisów wprowadzonych przez lektorów. Dane wewnętrzne — nie są publikowane na stronie.</p>
+      <div data-admin-schedule></div>
+    </section>
+
+    <!-- CENNIK INDYWIDUALNY -->
+    <section class="card" style="margin-bottom:32px;">
+      <h2 class="h2-sm" style="margin-bottom:6px;">Cennik — kursy indywidualne</h2>
+      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Zmiany widać na stronie „Cennik” od razu po zapisaniu.</p>
+      <div data-admin-pricing="individual"></div>
+      <div class="admin-add-row">
+        <input type="text" data-new-pricing="individual" data-field="name" placeholder="Nazwa pakietu">
+        <input type="text" data-new-pricing="individual" data-field="detail" placeholder="Liczba zajęć">
+        <input type="text" data-new-pricing="individual" data-field="price" placeholder="Cena">
+        <button type="button" class="btn btn-primary btn-sm" data-action="add-pricing" data-category="individual">+ Dodaj pakiet</button>
+      </div>
+    </section>
+
+    <!-- CENNIK GRUPOWY -->
+    <section class="card" style="margin-bottom:32px;">
+      <h2 class="h2-sm" style="margin-bottom:6px;">Cennik — kursy grupowe</h2>
+      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Zmiany widać na stronie „Cennik” od razu po zapisaniu.</p>
+      <div data-admin-pricing="group"></div>
+      <div class="admin-add-row">
+        <input type="text" data-new-pricing="group" data-field="name" placeholder="Nazwa pakietu">
+        <input type="text" data-new-pricing="group" data-field="detail" placeholder="Wielkość grupy">
+        <input type="text" data-new-pricing="group" data-field="price" placeholder="Cena / os.">
+        <button type="button" class="btn btn-primary btn-sm" data-action="add-pricing" data-category="group">+ Dodaj pakiet</button>
+      </div>
+    </section>
+
+    <!-- OPINIE -->
+    <section class="card" style="margin-bottom:32px;">
+      <h2 class="h2-sm" style="margin-bottom:6px;">Opinie kursantów</h2>
+      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Odznacz „opublikowana”, żeby chwilowo ukryć opinię ze strony głównej bez jej usuwania. Usuwanie jest natychmiastowe i nieodwracalne.</p>
+      <div data-admin-testimonials></div>
+      <div class="admin-add-row">
+        <textarea data-new-testimonial data-field="quote" placeholder="Treść opinii"></textarea>
+        <input type="text" data-new-testimonial data-field="name" placeholder="Imię i nazwisko">
+        <input type="text" data-new-testimonial data-field="role" placeholder="Opis (np. Studentka, przygotowanie do wyjazdu)">
+        <input type="text" data-new-testimonial data-field="initials" placeholder="Inicjały (np. JK)" style="max-width:140px;">
+        <button type="button" class="btn btn-primary btn-sm" data-action="add-testimonial">+ Dodaj opinię</button>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="card" style="margin-bottom:32px;">
+      <h2 class="h2-sm" style="margin-bottom:6px;">FAQ</h2>
+      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Odznacz „opublikowane”, żeby chwilowo ukryć pytanie ze strony FAQ bez jego usuwania.</p>
+      <div data-admin-faq></div>
+      <div class="admin-add-row">
+        <input type="text" data-new-faq data-field="question" placeholder="Pytanie">
+        <textarea data-new-faq data-field="answer" placeholder="Odpowiedź"></textarea>
+        <button type="button" class="btn btn-primary btn-sm" data-action="add-faq">+ Dodaj pytanie</button>
+      </div>
+    </section>
+
+    <!-- TREŚCI STRON -->
+    <section class="card" style="margin-bottom:32px;">
+      <h2 class="h2-sm" style="margin-bottom:6px;">Treści stron</h2>
+      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Krótkie fragmenty tekstu z różnych podstron (m.in. strona główna, oferta, o mnie). Zmiany widać od razu po zapisaniu każdego pola.</p>
+      <div data-admin-content class="stack gap-md"></div>
+    </section>
+
+    <!-- ZDJĘCIE LEKTORA -->
+    <section class="card" style="margin-bottom:32px;">
+      <h2 class="h2-sm" style="margin-bottom:6px;">Zdjęcie lektora</h2>
+      <p class="text-muted" style="font-size:13px; margin-bottom:12px;">Widoczne na stronie głównej i na stronie „O mnie”. Wgraj zdjęcie w formacie JPG lub PNG (zalecany format pionowy, podobny do 260×320).</p>
+      <div class="admin-photo-upload">
+        <img id="admin-photo-preview" src="img/lektor-przyklad.svg" alt="Podgląd bieżącego zdjęcia lektora">
+        <div class="stack gap-sm">
+          <input type="file" id="admin-photo-input" accept="image/png, image/jpeg, image/webp">
+          <div id="admin-photo-message" class="admin-message" style="display:none;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FILMIKI - LEKCJE -->
+    <section class="card" style="margin-bottom:32px;">
+      <h2 class="h2-sm" style="margin-bottom:6px;">Filmiki - lekcje</h2>
+      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Wklej link do filmu z YouTube (może być „niepubliczny” / unlisted — link zadziała, film po prostu nie pojawi się w wyszukiwarce YouTube). Odznacz „opublikowana”, żeby chwilowo ukryć lekcję ze strony bez jej usuwania.</p>
+      <div data-admin-videos></div>
+      <div class="admin-add-row">
+        <input type="text" data-new-video data-field="title" placeholder="Tytuł lekcji">
+        <textarea data-new-video data-field="description" placeholder="Krótki opis (opcjonalnie)"></textarea>
+        <input type="text" data-new-video data-field="youtube_url" placeholder="Link do filmu na YouTube">
+        <select data-new-video data-field="level">
+          <option value="">Poziom (opcjonalnie)</option>
+          <option value="A1">A1</option>
+          <option value="A2">A2</option>
+          <option value="B1">B1</option>
+          <option value="B2">B2</option>
+          <option value="C1">C1</option>
+          <option value="C2">C2</option>
+        </select>
+        <button type="button" class="btn btn-primary btn-sm" data-action="add-video">+ Dodaj lekcję</button>
+      </div>
+    </section>
+
+    <!-- DANE KONTAKTOWE -->
+    <section class="card" style="margin-bottom:32px;">
+      <h2 class="h2-sm" style="margin-bottom:6px;">Dane kontaktowe</h2>
+      <p class="text-muted" style="font-size:13px; margin-bottom:16px;">Widoczne w stopce każdej podstrony oraz na stronie Kontakt.</p>
+      <form id="admin-contact-form" class="stack gap-md" style="gap:16px; max-width:480px;">
+        <div class="field">
+          <label for="admin-contact-email">E-mail</label>
+          <input type="email" id="admin-contact-email" placeholder="kontakt@ownenglish.pl">
+        </div>
+        <div class="field">
+          <label for="admin-contact-phone">Telefon</label>
+          <input type="text" id="admin-contact-phone" placeholder="+48 ...">
+        </div>
+        <div class="field">
+          <label for="admin-contact-location">Lokalizacja</label>
+          <input type="text" id="admin-contact-location" placeholder="np. Warszawa, zajęcia online">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:fit-content;">Zapisz dane kontaktowe</button>
+      </form>
+    </section>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/admin.js" defer></script>
+</body>
+</html>

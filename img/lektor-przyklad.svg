@@ -1,0 +1,83 @@
+<svg width="300" height="400" viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg">
+  <!-- Przykładowa ilustracja "lektor angielskiego" — mockup do wizualizacji, NIE prawdziwe zdjęcie. Do zastąpienia realnym zdjęciem. -->
+
+  <!-- tło: miękka poświata -->
+  <defs>
+    <radialGradient id="bgGlow" cx="50%" cy="38%" r="65%">
+      <stop offset="0%" stop-color="#F3FBF6"/>
+      <stop offset="100%" stop-color="#DDF3E4"/>
+    </radialGradient>
+    <linearGradient id="sweater" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3F5B52"/>
+      <stop offset="100%" stop-color="#2E463F"/>
+    </linearGradient>
+  </defs>
+  <rect width="300" height="400" fill="url(#bgGlow)"/>
+
+  <!-- ramiona / sweter -->
+  <path d="M60 400V336C60 296 88 268 150 268C212 268 240 296 240 336V400Z" fill="url(#sweater)"/>
+  <!-- kołnierz koszuli -->
+  <path d="M126 276L150 300L140 268H160L150 300L174 276L166 310H134Z" fill="#F5F1E8"/>
+  <!-- krawat w kolorze marki -->
+  <path d="M144 304L150 314L156 304L152 340L150 348L148 340Z" fill="#16A34A"/>
+
+  <!-- szyja -->
+  <rect x="132" y="240" width="36" height="46" rx="14" fill="#D9A876"/>
+
+  <!-- głowa -->
+  <ellipse cx="150" cy="196" rx="54" ry="60" fill="#E3B689"/>
+
+  <!-- uszy -->
+  <ellipse cx="97" cy="200" rx="8" ry="13" fill="#DBAA7C"/>
+  <ellipse cx="203" cy="200" rx="8" ry="13" fill="#DBAA7C"/>
+
+  <!-- broda/zarost, delikatny -->
+  <path d="M100 210C100 250 122 274 150 274C178 274 200 250 200 210C200 232 186 246 150 246C114 246 100 232 100 210Z" fill="#5B4636" opacity="0.16"/>
+
+  <!-- włosy: krótkie, profesjonalne (dojrzały, doświadczony wygląd) -->
+  <path d="M90 192C86 140 112 100 150 100C188 100 214 140 210 192C207 160 194 140 150 140C106 140 93 160 90 192Z" fill="#4A3B30"/>
+
+  <!-- brwi -->
+  <path d="M116 182C124 176 138 176 146 182" stroke="#3D3128" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <path d="M154 182C162 176 176 176 184 182" stroke="#3D3128" stroke-width="4" stroke-linecap="round" fill="none"/>
+
+  <!-- okulary — kluczowy sygnał "nauczyciel/lektor" -->
+  <circle cx="128" cy="198" r="20" fill="none" stroke="#2B2A28" stroke-width="4"/>
+  <circle cx="172" cy="198" r="20" fill="none" stroke="#2B2A28" stroke-width="4"/>
+  <path d="M148 196H152" stroke="#2B2A28" stroke-width="4" stroke-linecap="round"/>
+  <path d="M108 196C104 194 100 194 96 197" stroke="#2B2A28" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+  <path d="M192 196C196 194 200 194 204 197" stroke="#2B2A28" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+
+  <!-- oczy -->
+  <circle cx="128" cy="199" r="4.2" fill="#2B2A28"/>
+  <circle cx="172" cy="199" r="4.2" fill="#2B2A28"/>
+
+  <!-- nos -->
+  <path d="M150 190L146 216C146 220 149 222 153 220" stroke="#B98456" stroke-width="3" stroke-linecap="round" fill="none"/>
+
+  <!-- uśmiech -->
+  <path d="M130 232C138 240 162 240 170 232" stroke="#7A4A32" stroke-width="4" stroke-linecap="round" fill="none"/>
+
+  <!-- plakietka z flagą USA (motyw wymowy/słownictwa, spójny z resztą strony) -->
+  <g transform="translate(200,318)">
+    <circle r="19" fill="#FFFFFF"/>
+    <clipPath id="lektorFlagClip"><circle r="16"/></clipPath>
+    <g clip-path="url(#lektorFlagClip)">
+      <rect x="-16" y="-16" width="32" height="32" fill="#FFFFFF"/>
+      <rect x="-16" y="-16" width="32" height="4.4" fill="#B22234"/>
+      <rect x="-16" y="-7.2" width="32" height="4.4" fill="#B22234"/>
+      <rect x="-16" y="1.6" width="32" height="4.4" fill="#B22234"/>
+      <rect x="-16" y="10.4" width="32" height="4.4" fill="#B22234"/>
+      <rect x="-16" y="-16" width="14" height="12.8" fill="#3C3B6E"/>
+    </g>
+    <circle r="19" fill="none" stroke="#EDF8F1" stroke-width="3"/>
+  </g>
+
+  <!-- książka trzymana przy piersi -->
+  <g transform="translate(150,388)">
+    <path d="M-44 8C-44 4 -40 1 -30 1C-16 1 -6 4 0 9C6 4 16 1 30 1C40 1 44 4 44 8V26C44 30 40 27 30 27C16 27 6 30 0 35C-6 30 -16 27 -30 27C-40 27 -44 30 -44 26Z" fill="#F5F1E8" stroke="#C9BFAA" stroke-width="1"/>
+    <path d="M0 9V35" stroke="#C9BFAA" stroke-width="1.6"/>
+    <path d="M-30 1C-16 1 -6 4 0 9" fill="none" stroke="#C9BFAA" stroke-width="1.4"/>
+    <path d="M30 1C16 1 6 4 0 9" fill="none" stroke="#C9BFAA" stroke-width="1.4"/>
+  </g>
+</svg>
