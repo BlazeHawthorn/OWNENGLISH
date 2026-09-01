@@ -68,68 +68,17 @@
     </div>
   </div>
 
-  <!-- UMÓW TERMIN ONLINE (docelowo: Calendly) -->
+  <!-- UMÓW TERMIN ONLINE (Calendly) -->
   <section class="section">
     <div class="container">
-      <div class="grid grid-2" style="align-items:center; gap:48px;">
+      <div class="grid grid-2" style="align-items:start; gap:48px;">
         <div class="stack gap-md">
           <span class="eyebrow">Najszybsza droga</span>
           <h2>Wybierz termin sam, online.</h2>
           <p class="text-muted" style="max-width:420px;">Zobacz dostępne terminy i zarezerwuj bezpłatną konsultację w kilka sekund — bez wymiany maili. Kalendarz synchronizuje się na bieżąco z moją dostępnością.</p>
-          <p class="text-muted" style="font-size:13px;">Podgląd obok pokazuje, jak to będzie wyglądać — aktywny, klikalny kalendarz pojawi się tutaj po podłączeniu konta do rezerwacji terminów.</p>
         </div>
-        <div class="calendar-mock">
-          <span class="photo-frame-badge">Przykładowy podgląd</span>
-          <div class="calendar-mock-header">
-            <span class="calendar-mock-month">Wrzesień 2026</span>
-            <div class="calendar-mock-nav"><span>‹</span><span>›</span></div>
-          </div>
-          <div class="calendar-mock-weekdays">
-            <span>Pn</span><span>Wt</span><span>Śr</span><span>Cz</span><span>Pt</span><span>Sb</span><span>Nd</span>
-          </div>
-          <div class="calendar-mock-grid">
-            <span class="calendar-mock-day is-muted">31</span>
-            <span class="calendar-mock-day">1</span>
-            <span class="calendar-mock-day is-available">2</span>
-            <span class="calendar-mock-day">3</span>
-            <span class="calendar-mock-day is-available">4</span>
-            <span class="calendar-mock-day">5</span>
-            <span class="calendar-mock-day is-muted">6</span>
-            <span class="calendar-mock-day is-muted">7</span>
-            <span class="calendar-mock-day is-available">8</span>
-            <span class="calendar-mock-day is-selected">9</span>
-            <span class="calendar-mock-day is-available">10</span>
-            <span class="calendar-mock-day">11</span>
-            <span class="calendar-mock-day">12</span>
-            <span class="calendar-mock-day is-muted">13</span>
-            <span class="calendar-mock-day is-muted">14</span>
-            <span class="calendar-mock-day is-available">15</span>
-            <span class="calendar-mock-day is-available">16</span>
-            <span class="calendar-mock-day">17</span>
-            <span class="calendar-mock-day is-available">18</span>
-            <span class="calendar-mock-day">19</span>
-            <span class="calendar-mock-day is-muted">20</span>
-            <span class="calendar-mock-day is-muted">21</span>
-          </div>
-          <div class="calendar-mock-slots">
-            <span class="calendar-mock-slot is-selected">9:00</span>
-            <span class="calendar-mock-slot">11:00</span>
-            <span class="calendar-mock-slot">14:30</span>
-            <span class="calendar-mock-slot">16:00</span>
-          </div>
-        </div>
+        <div class="calendly-inline-widget" data-url="https://calendly.com/hordykblazej/30min" style="min-width:320px; height:700px;"></div>
       </div>
-
-      <!--
-        AKTYWACJA PRAWDZIWEGO KALENDARZA (np. Calendly):
-        1) Załóż darmowe konto na calendly.com i utwórz wydarzenie "Bezpłatna konsultacja".
-        2) Skopiuj link do wydarzenia (np. https://calendly.com/twoja-nazwa/konsultacja).
-        3) Usuń całą sekcję ".calendar-mock" powyżej (to tylko podgląd) i wklej w to miejsce
-           poniższy, gotowy kod, podmieniając data-url na swój prawdziwy link:
-
-        <div class="calendly-inline-widget" data-url="https://calendly.com/TWOJA-NAZWA/konsultacja" style="min-width:320px; height:700px;"></div>
-        <script type="text/javascript" src="https://assets.calendly.com/assets/external/widget.js" async></script>
-      -->
     </div>
   </section>
 
@@ -266,5 +215,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="js/supabase-config.js"></script>
   <script src="js/site-content.js"></script>
+  <script src="https://assets.calendly.com/assets/external/widget.js" async></script>
 </body>
 </html>
