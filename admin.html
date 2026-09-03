@@ -106,13 +106,21 @@
 
       <section class="card" style="margin-bottom:32px;">
         <h2 class="h2-sm" style="margin-bottom:6px;">Twój grafik zajęć</h2>
-        <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Widoczny tylko dla Ciebie i administratora — nie jest publikowany na stronie.</p>
+        <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Widoczny tylko dla Ciebie i administratora — nie jest publikowany na stronie. Jeśli kurs odbywa się regularnie w tym samym terminie, wybierz opcję „Powtarzaj" niżej — doda od razu wszystkie kolejne terminy.</p>
         <div data-tutor-schedule></div>
         <div class="admin-add-row">
           <input type="text" data-new-lesson data-field="student_name" placeholder="Imię ucznia">
           <input type="date" data-new-lesson data-field="lesson_date">
           <input type="time" data-new-lesson data-field="lesson_time">
           <input type="text" data-new-lesson data-field="notes" placeholder="Notatka (opcjonalnie)">
+          <select id="lesson-repeat-select">
+            <option value="1">Tylko raz</option>
+            <option value="4">Co tydzień przez 4 tygodnie</option>
+            <option value="8">Co tydzień przez 8 tygodni</option>
+            <option value="12">Co tydzień przez 12 tygodni</option>
+            <option value="24">Co tydzień przez 24 tygodnie</option>
+            <option value="52">Co tydzień przez 52 tygodnie (rok)</option>
+          </select>
           <button type="button" class="btn btn-primary btn-sm" data-action="add-lesson">+ Dodaj zajęcia</button>
         </div>
       </section>
@@ -134,13 +142,21 @@
     <!-- MÓJ GRAFIK -->
     <section class="card" style="margin-bottom:32px;">
       <h2 class="h2-sm" style="margin-bottom:6px;">Mój grafik zajęć</h2>
-      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Twój własny grafik zajęć — dodajesz i prowadzisz go dokładnie tak samo, jak robią to lektorzy w swoim panelu. Widoczny tylko dla Ciebie.</p>
+      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Twój własny grafik zajęć — dodajesz i prowadzisz go dokładnie tak samo, jak robią to lektorzy w swoim panelu. Widoczny tylko dla Ciebie. Jeśli kurs odbywa się regularnie w tym samym terminie, wybierz opcję „Powtarzaj" niżej — doda od razu wszystkie kolejne terminy (każdy jako osobny wpis, więc pojedyncze zajęcia z serii możesz później odwołać albo usunąć bez ruszania reszty).</p>
       <div data-my-schedule></div>
       <div class="admin-add-row">
         <input type="text" data-new-my-lesson data-field="student_name" placeholder="Imię ucznia">
         <input type="date" data-new-my-lesson data-field="lesson_date">
         <input type="time" data-new-my-lesson data-field="lesson_time">
         <input type="text" data-new-my-lesson data-field="notes" placeholder="Notatka (opcjonalnie)">
+        <select id="my-lesson-repeat-select">
+          <option value="1">Tylko raz</option>
+          <option value="4">Co tydzień przez 4 tygodnie</option>
+          <option value="8">Co tydzień przez 8 tygodni</option>
+          <option value="12">Co tydzień przez 12 tygodni</option>
+          <option value="24">Co tydzień przez 24 tygodnie</option>
+          <option value="52">Co tydzień przez 52 tygodnie (rok)</option>
+        </select>
         <button type="button" class="btn btn-primary btn-sm" data-action="add-my-lesson">+ Dodaj zajęcia</button>
       </div>
     </section>

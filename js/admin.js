@@ -84,6 +84,34 @@
     return d.getFullYear() + '-' + m + '-' + day;
   }
 
+  // Dodaje "days" dni do daty w formacie "RRRR-MM-DD" i zwraca ją w tym
+  // samym formacie — używane przy "powtarzaniu" zajęć co tydzień.
+  function addDaysToIsoDate(iso, days) {
+    var parts = iso.split('-');
+    var d = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
+    d.setUTCDate(d.getUTCDate() + days);
+    var y = d.getUTCFullYear();
+    var m = String(d.getUTCMonth() + 1);
+    if (m.length < 2) m = '0' + m;
+    var day = String(d.getUTCDate());
+    if (day.length < 2) day = '0' + day;
+    return y + '-' + m + '-' + day;
+  }
+
+  // Zamienia jeden wpis grafiku na kilka (co tydzień, ta sama godzina i
+  // uczeń) — dla lekcji, które odbywają się regularnie w tym samym terminie.
+  // "weeks" to liczba wystąpień łącznie z pierwszym (1 = bez powtarzania).
+  function buildRecurringLessonRows(basePayload, weeks) {
+    var count = (weeks && weeks > 1) ? weeks : 1;
+    var rows = [];
+    for (var i = 0; i < count; i++) {
+      var row = Object.assign({}, basePayload);
+      row.lesson_date = addDaysToIsoDate(basePayload.lesson_date, i * 7);
+      rows.push(row);
+    }
+    return rows;
+  }
+
   // ---------- PRZEŁĄCZNIK LOGOWANIE / REJESTRACJA LEKTORA ----------
 
   var showingRegister = false;
@@ -358,9 +386,12 @@
       var payload = { tutor_id: currentTutorRow.user_id };
       inputs.forEach(function (input) { payload[input.getAttribute('data-field')] = input.value.trim(); });
       if (!payload.student_name || !payload.lesson_date) { return; }
-      client.from('lesson_schedule').insert(payload).then(function (res) {
+      var repeatSelect = document.getElementById('lesson-repeat-select');
+      var rows = buildRecurringLessonRows(payload, repeatSelect ? Number(repeatSelect.value) : 1);
+      client.from('lesson_schedule').insert(rows).then(function (res) {
         if (res.error) return;
         inputs.forEach(function (input) { input.value = ''; });
+        if (repeatSelect) repeatSelect.value = '1';
         loadTutorSchedule();
       });
     });
@@ -480,9 +511,12 @@
       var payload = { tutor_id: currentAdminUserId };
       inputs.forEach(function (input) { payload[input.getAttribute('data-field')] = input.value.trim(); });
       if (!payload.student_name || !payload.lesson_date) { return; }
-      client.from('lesson_schedule').insert(payload).then(function (res) {
+      var repeatSelect = document.getElementById('my-lesson-repeat-select');
+      var rows = buildRecurringLessonRows(payload, repeatSelect ? Number(repeatSelect.value) : 1);
+      client.from('lesson_schedule').insert(rows).then(function (res) {
         if (res.error) return;
         inputs.forEach(function (input) { input.value = ''; });
+        if (repeatSelect) repeatSelect.value = '1';
         loadMySchedule();
         loadTodayLessons();
       });
