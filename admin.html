@@ -112,6 +112,11 @@
           <input type="text" data-new-lesson data-field="student_name" placeholder="Imię ucznia">
           <input type="date" data-new-lesson data-field="lesson_date">
           <input type="time" data-new-lesson data-field="lesson_time">
+          <select data-new-lesson data-field="duration_minutes">
+            <option value="45">45 min</option>
+            <option value="60" selected>60 min</option>
+            <option value="90">90 min</option>
+          </select>
           <input type="text" data-new-lesson data-field="notes" placeholder="Notatka (opcjonalnie)">
           <select id="lesson-repeat-select">
             <option value="1">Tylko raz</option>
@@ -144,6 +149,33 @@
       <h2 class="h2-sm" style="margin-bottom:6px;">Mój grafik zajęć</h2>
       <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Twój własny grafik zajęć — dodajesz i prowadzisz go dokładnie tak samo, jak robią to lektorzy w swoim panelu. Widoczny tylko dla Ciebie. Jeśli kurs odbywa się regularnie w tym samym terminie, wybierz opcję „Powtarzaj" niżej — doda od razu wszystkie kolejne terminy (każdy jako osobny wpis, więc pojedyncze zajęcia z serii możesz później odwołać albo usunąć bez ruszania reszty).</p>
 
+      <div class="card-outline" style="margin:16px 0 24px; padding:20px;">
+        <h3 class="text-strong" style="font-size:14.5px; margin-bottom:12px;">Podsumowanie miesiąca</h3>
+        <div class="row gap-sm" style="align-items:center; margin-bottom:16px;">
+          <button type="button" id="summary-month-prev" class="btn btn-outline btn-xs" aria-label="Poprzedni miesiąc">◀</button>
+          <strong id="summary-month-label" style="min-width:150px; text-align:center;">—</strong>
+          <button type="button" id="summary-month-next" class="btn btn-outline btn-xs" aria-label="Następny miesiąc">▶</button>
+        </div>
+        <div class="grid grid-2" style="gap:16px; margin-bottom:16px; max-width:420px;">
+          <div class="stack gap-xs">
+            <span class="footer-heading">Liczba lekcji</span>
+            <span class="text-strong" id="summary-lesson-count" style="font-size:26px;">0</span>
+          </div>
+          <div class="stack gap-xs">
+            <span class="footer-heading">Szacowany zarobek</span>
+            <span class="text-strong" id="summary-earnings" style="font-size:26px;">0,00 zł</span>
+          </div>
+        </div>
+        <p class="text-muted" style="font-size:12px; margin-bottom:14px;">Liczone z zajęć zaplanowanych i odbytych w wybranym miesiącu (odwołane się nie liczą), proporcjonalnie do długości każdej lekcji.</p>
+        <form id="admin-hourly-rate-form" class="row gap-sm" style="align-items:flex-end; flex-wrap:wrap;">
+          <div class="field" style="max-width:160px; margin-bottom:0;">
+            <label for="admin-hourly-rate">Stawka za godzinę (zł)</label>
+            <input type="number" id="admin-hourly-rate" min="0" step="0.01" placeholder="np. 100">
+          </div>
+          <button type="submit" class="btn btn-primary btn-xs">Zapisz stawkę</button>
+        </form>
+      </div>
+
       <h3 class="text-strong" style="font-size:14.5px; margin:20px 0 10px;">Podgląd — najbliższe 7 dni</h3>
       <p class="text-muted" style="font-size:12.5px; margin-bottom:10px;">Kliknij „+ Dodaj" pod wybranym dniem — od razu ustawi tę datę w formularzu poniżej. Na telefonie przesuń tabelę palcem w bok, żeby zobaczyć kolejne dni.</p>
       <div data-my-schedule-week style="margin-bottom:24px;"></div>
@@ -154,6 +186,11 @@
         <input type="text" data-new-my-lesson data-field="student_name" placeholder="Imię ucznia">
         <input type="date" data-new-my-lesson data-field="lesson_date">
         <input type="time" data-new-my-lesson data-field="lesson_time">
+        <select data-new-my-lesson data-field="duration_minutes">
+          <option value="45">45 min</option>
+          <option value="60" selected>60 min</option>
+          <option value="90">90 min</option>
+        </select>
         <input type="text" data-new-my-lesson data-field="notes" placeholder="Notatka (opcjonalnie)">
         <select id="my-lesson-repeat-select">
           <option value="1">Tylko raz</option>

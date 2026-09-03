@@ -43,6 +43,9 @@
   var client = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
   var currentTutorRow = null; // profil lektora aktualnie zalogowanej osoby (null dla admina)
   var currentAdminUserId = null; // auth.uid() zalogowanego administratora (null dla lektora)
+  var currentHourlyRate = 0; // stawka za godzinę administratora (do "Podsumowania miesiąca")
+  var summaryMonthStart = null; // 'RRRR-MM-01' — miesiąc aktualnie pokazywany w podsumowaniu
+  var latestMyScheduleRows = []; // ostatnio wczytane własne zajęcia administratora (do podsumowania)
 
   function escapeHtml(str) {
     if (str === null || str === undefined) return '';
@@ -131,6 +134,29 @@
     var color = r.status === 'cancelled' ? '#B3261E' : (r.status === 'completed' ? 'var(--color-accent-dark)' : 'var(--color-ink)');
     var timeText = r.lesson_time ? escapeHtml(r.lesson_time) + ' — ' : '';
     return '<div style="font-size:12.5px; line-height:1.5; color:' + color + ';">' + timeText + escapeHtml(r.student_name) + '</div>';
+  }
+
+  // ---------- POMOCNICZE DO "PODSUMOWANIA MIESIĄCA" (zarobek, liczba lekcji) ----------
+
+  var MONTH_NAMES_PL = ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec', 'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'];
+
+  function monthStartFromDate(d) {
+    var m = String(d.getMonth() + 1);
+    if (m.length < 2) m = '0' + m;
+    return d.getFullYear() + '-' + m + '-01';
+  }
+
+  function addMonthsToMonthStart(iso, delta) {
+    var parts = iso.split('-');
+    var d = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1 + delta, 1));
+    var m = String(d.getUTCMonth() + 1);
+    if (m.length < 2) m = '0' + m;
+    return d.getUTCFullYear() + '-' + m + '-01';
+  }
+
+  function monthLabel(iso) {
+    var parts = iso.split('-');
+    return MONTH_NAMES_PL[Number(parts[1]) - 1] + ' ' + parts[0];
   }
 
   // ---------- PRZEŁĄCZNIK LOGOWANIE / REJESTRACJA LEKTORA ----------
@@ -248,6 +274,7 @@
     dashboardSection.style.display = 'block';
     loadTodayLessons();
     loadMySchedule();
+    loadHourlyRate();
     loadTutorsAdmin();
     loadScheduleAdmin();
     loadPricingAdmin();
@@ -374,6 +401,7 @@
       return (
         '<div class="admin-row" data-row-id="' + r.id + '">' +
         '<span style="min-width:110px;">' + escapeHtml(r.lesson_date) + (r.lesson_time ? ' ' + escapeHtml(r.lesson_time) : '') + '</span>' +
+        '<span class="text-muted" style="min-width:50px; font-size:12px;">' + (r.duration_minutes || 60) + ' min</span>' +
         '<span style="flex:1 1 140px;">' + escapeHtml(r.student_name) + '</span>' +
         '<span class="text-muted" style="flex:1 1 160px; font-size:13px;">' + escapeHtml(r.notes) + '</span>' +
         lessonStatusSelectHtml(r.status) +
@@ -406,12 +434,15 @@
       var inputs = document.querySelectorAll('[data-new-lesson]');
       var payload = { tutor_id: currentTutorRow.user_id };
       inputs.forEach(function (input) { payload[input.getAttribute('data-field')] = input.value.trim(); });
+      payload.duration_minutes = Number(payload.duration_minutes) || 60;
       if (!payload.student_name || !payload.lesson_date) { return; }
       var repeatSelect = document.getElementById('lesson-repeat-select');
       var rows = buildRecurringLessonRows(payload, repeatSelect ? Number(repeatSelect.value) : 1);
       client.from('lesson_schedule').insert(rows).then(function (res) {
         if (res.error) return;
-        inputs.forEach(function (input) { input.value = ''; });
+        inputs.forEach(function (input) {
+          input.value = (input.getAttribute('data-field') === 'duration_minutes') ? '60' : '';
+        });
         if (repeatSelect) repeatSelect.value = '1';
         loadTutorSchedule();
       });
@@ -484,9 +515,81 @@
       .order('lesson_date', { ascending: true })
       .then(function (res) {
         if (res.error) return;
+        latestMyScheduleRows = res.data;
         renderMySchedule(res.data);
         renderMyScheduleWeek(res.data);
+        renderMonthlySummary();
       });
+  }
+
+  // ---------- PODSUMOWANIE MIESIĄCA (liczba lekcji + szacowany zarobek) ----------
+  // Stawka za godzinę to wartość ustawiona ręcznie przez administratora
+  // (tabela admin_settings, sekcja "10" w supabase-setup.sql). Zarobek za
+  // lekcję liczy się proporcjonalnie do jej długości: (czas w minutach / 60)
+  // × stawka za godzinę. Do zarobku i liczby lekcji NIE wliczają się zajęcia
+  // odwołane — tylko zaplanowane i odbyte.
+
+  function loadHourlyRate() {
+    client.from('admin_settings').select('*').eq('id', 1).single().then(function (res) {
+      if (res.error || !res.data) return;
+      currentHourlyRate = Number(res.data.hourly_rate) || 0;
+      var input = document.getElementById('admin-hourly-rate');
+      if (input) input.value = currentHourlyRate || '';
+      renderMonthlySummary();
+    });
+  }
+
+  function renderMonthlySummary() {
+    var labelEl = document.getElementById('summary-month-label');
+    var countEl = document.getElementById('summary-lesson-count');
+    var earningsEl = document.getElementById('summary-earnings');
+    if (!labelEl || !countEl || !earningsEl) return;
+
+    if (!summaryMonthStart) summaryMonthStart = monthStartFromDate(new Date());
+    var monthKey = summaryMonthStart.slice(0, 7); // "RRRR-MM"
+
+    var relevant = latestMyScheduleRows.filter(function (r) {
+      return r.lesson_date && r.lesson_date.slice(0, 7) === monthKey && r.status !== 'cancelled';
+    });
+    var totalEarnings = relevant.reduce(function (sum, r) {
+      var minutes = r.duration_minutes || 60;
+      return sum + (minutes / 60) * currentHourlyRate;
+    }, 0);
+
+    labelEl.textContent = monthLabel(summaryMonthStart);
+    countEl.textContent = String(relevant.length);
+    earningsEl.textContent = totalEarnings.toFixed(2).replace('.', ',') + ' zł';
+  }
+
+  var summaryPrevBtn = document.getElementById('summary-month-prev');
+  var summaryNextBtn = document.getElementById('summary-month-next');
+  if (summaryPrevBtn) {
+    summaryPrevBtn.addEventListener('click', function () {
+      if (!summaryMonthStart) summaryMonthStart = monthStartFromDate(new Date());
+      summaryMonthStart = addMonthsToMonthStart(summaryMonthStart, -1);
+      renderMonthlySummary();
+    });
+  }
+  if (summaryNextBtn) {
+    summaryNextBtn.addEventListener('click', function () {
+      if (!summaryMonthStart) summaryMonthStart = monthStartFromDate(new Date());
+      summaryMonthStart = addMonthsToMonthStart(summaryMonthStart, 1);
+      renderMonthlySummary();
+    });
+  }
+
+  var hourlyRateForm = document.getElementById('admin-hourly-rate-form');
+  if (hourlyRateForm) {
+    hourlyRateForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var val = Number(document.getElementById('admin-hourly-rate').value) || 0;
+      client.from('admin_settings').upsert({ id: 1, hourly_rate: val }).then(function (res) {
+        if (res.error) { showMessage(globalMessage, 'Błąd zapisu stawki: ' + res.error.message, 'error'); return; }
+        currentHourlyRate = val;
+        showMessage(globalMessage, 'Zapisano stawkę godzinową.', 'success');
+        renderMonthlySummary();
+      });
+    });
   }
 
   // Tabela "Podgląd — najbliższe 7 dni" nad pełną listą — czysty podgląd
@@ -557,6 +660,7 @@
       return (
         '<div class="admin-row" data-row-id="' + r.id + '">' +
         '<span style="min-width:110px;">' + escapeHtml(r.lesson_date) + (r.lesson_time ? ' ' + escapeHtml(r.lesson_time) : '') + '</span>' +
+        '<span class="text-muted" style="min-width:50px; font-size:12px;">' + (r.duration_minutes || 60) + ' min</span>' +
         '<span style="flex:1 1 140px;">' + escapeHtml(r.student_name) + '</span>' +
         '<span class="text-muted" style="flex:1 1 160px; font-size:13px;">' + escapeHtml(r.notes) + '</span>' +
         lessonStatusSelectHtml(r.status) +
@@ -594,12 +698,15 @@
       var inputs = document.querySelectorAll('[data-new-my-lesson]');
       var payload = { tutor_id: currentAdminUserId };
       inputs.forEach(function (input) { payload[input.getAttribute('data-field')] = input.value.trim(); });
+      payload.duration_minutes = Number(payload.duration_minutes) || 60;
       if (!payload.student_name || !payload.lesson_date) { return; }
       var repeatSelect = document.getElementById('my-lesson-repeat-select');
       var rows = buildRecurringLessonRows(payload, repeatSelect ? Number(repeatSelect.value) : 1);
       client.from('lesson_schedule').insert(rows).then(function (res) {
         if (res.error) return;
-        inputs.forEach(function (input) { input.value = ''; });
+        inputs.forEach(function (input) {
+          input.value = (input.getAttribute('data-field') === 'duration_minutes') ? '60' : '';
+        });
         if (repeatSelect) repeatSelect.value = '1';
         loadMySchedule();
         loadTodayLessons();
@@ -756,6 +863,7 @@
         '<div class="admin-row" data-row-id="' + r.id + '">' +
         '<strong style="min-width:130px;">' + escapeHtml(lessonOwnerName(r.tutor_id, tutorsByUserId)) + '</strong>' +
         '<span style="min-width:110px;">' + escapeHtml(r.lesson_date) + (r.lesson_time ? ' ' + escapeHtml(r.lesson_time) : '') + '</span>' +
+        '<span class="text-muted" style="min-width:50px; font-size:12px;">' + (r.duration_minutes || 60) + ' min</span>' +
         '<span style="flex:1 1 120px;">' + escapeHtml(r.student_name) + '</span>' +
         '<span class="text-muted" style="flex:1 1 160px; font-size:13px;">' + escapeHtml(r.notes) + '</span>' +
         lessonStatusSelectHtml(r.status) +
