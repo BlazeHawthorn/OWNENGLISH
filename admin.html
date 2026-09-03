@@ -33,7 +33,7 @@
       <div class="stack gap-xs">
         <span class="eyebrow">Panel OwnEnglish</span>
         <h1 id="auth-heading" class="h2-sm">Zaloguj się</h1>
-        <p id="auth-subtitle" class="text-muted" style="font-size:14px;">Panel administratora i lektorów. Konto administratora zakładasz w panelu Supabase (Authentication → Users) — konto lektora możesz założyć samodzielnie poniżej.</p>
+        <p id="auth-subtitle" class="text-muted" style="font-size:14px;">Panel administratora i lektorów.</p>
       </div>
 
       <div id="admin-config-warning" class="admin-config-warning" style="display:none;">
@@ -124,6 +124,27 @@
 
     <div id="admin-global-message" class="admin-message" style="margin-bottom:24px;"></div>
 
+    <!-- DZISIEJSZE ZAJĘCIA -->
+    <section class="card" style="margin-bottom:32px;">
+      <h2 class="h2-sm" style="margin-bottom:6px;">Dzisiejsze zajęcia</h2>
+      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Wszystkie zajęcia zaplanowane na dziś — Twoje własne oraz wszystkich lektorów. Status możesz zmienić od razu tutaj.</p>
+      <div data-admin-today></div>
+    </section>
+
+    <!-- MÓJ GRAFIK -->
+    <section class="card" style="margin-bottom:32px;">
+      <h2 class="h2-sm" style="margin-bottom:6px;">Mój grafik zajęć</h2>
+      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Twój własny grafik zajęć — dodajesz i prowadzisz go dokładnie tak samo, jak robią to lektorzy w swoim panelu. Widoczny tylko dla Ciebie.</p>
+      <div data-my-schedule></div>
+      <div class="admin-add-row">
+        <input type="text" data-new-my-lesson data-field="student_name" placeholder="Imię ucznia">
+        <input type="date" data-new-my-lesson data-field="lesson_date">
+        <input type="time" data-new-my-lesson data-field="lesson_time">
+        <input type="text" data-new-my-lesson data-field="notes" placeholder="Notatka (opcjonalnie)">
+        <button type="button" class="btn btn-primary btn-sm" data-action="add-my-lesson">+ Dodaj zajęcia</button>
+      </div>
+    </section>
+
     <!-- LEKTORZY -->
     <section class="card" style="margin-bottom:32px;">
       <h2 class="h2-sm" style="margin-bottom:6px;">Lektorzy</h2>
@@ -134,7 +155,7 @@
     <!-- GRAFIK ZAJĘĆ (WSZYSCY LEKTORZY) -->
     <section class="card" style="margin-bottom:32px;">
       <h2 class="h2-sm" style="margin-bottom:6px;">Grafik zajęć — wszyscy lektorzy</h2>
-      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Podgląd i edycja wpisów wprowadzonych przez lektorów. Dane wewnętrzne — nie są publikowane na stronie.</p>
+      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Podgląd i edycja wpisów wprowadzonych przez lektorów (oraz Twoich własnych — patrz „Mój grafik" wyżej). Status zajęć możesz zmienić bezpośrednio na liście. Dane wewnętrzne — nie są publikowane na stronie.</p>
       <div data-admin-schedule></div>
     </section>
 

@@ -42,6 +42,7 @@
 
   var client = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
   var currentTutorRow = null; // profil lektora aktualnie zalogowanej osoby (null dla admina)
+  var currentAdminUserId = null; // auth.uid() zalogowanego administratora (null dla lektora)
 
   function escapeHtml(str) {
     if (str === null || str === undefined) return '';
@@ -59,6 +60,30 @@
     }
   }
 
+  // Rozwijana lista statusu zajęć — używana w trzech miejscach: własny
+  // grafik lektora, "Mój grafik" admina, "Grafik zajęć — wszyscy lektorzy"
+  // i widget "Dzisiejsze zajęcia". Klikalna od razu na liście (bez osobnego
+  // przycisku "Zapisz") — zmiana zapisuje się w bazie od razu po wyborze.
+  function lessonStatusSelectHtml(status) {
+    var s = status || 'planned';
+    return (
+      '<select class="btn-outline btn-xs" data-action="set-status" style="min-width:130px;">' +
+      '<option value="planned"' + (s === 'planned' ? ' selected' : '') + '>Zaplanowane</option>' +
+      '<option value="completed"' + (s === 'completed' ? ' selected' : '') + '>Odbyte</option>' +
+      '<option value="cancelled"' + (s === 'cancelled' ? ' selected' : '') + '>Odwołane</option>' +
+      '</select>'
+    );
+  }
+
+  function todayIso() {
+    var d = new Date();
+    var m = String(d.getMonth() + 1);
+    if (m.length < 2) m = '0' + m;
+    var day = String(d.getDate());
+    if (day.length < 2) day = '0' + day;
+    return d.getFullYear() + '-' + m + '-' + day;
+  }
+
   // ---------- PRZEŁĄCZNIK LOGOWANIE / REJESTRACJA LEKTORA ----------
 
   var showingRegister = false;
@@ -71,7 +96,7 @@
     authHeading.textContent = showingRegister ? 'Zarejestruj się jako lektor' : 'Zaloguj się';
     authSubtitle.textContent = showingRegister
       ? 'Po rejestracji Twoje konto czeka na zatwierdzenie przez administratora — zobaczysz status od razu po zalogowaniu.'
-      : 'Panel administratora i lektorów. Konto administratora zakładasz w panelu Supabase (Authentication → Users) — konto lektora możesz założyć samodzielnie poniżej.';
+      : 'Panel administratora i lektorów.';
     authModeToggle.textContent = showingRegister ? 'Masz już konto? Zaloguj się' : 'Nie masz jeszcze konta? Zarejestruj się jako lektor';
   }
   authModeToggle.addEventListener('click', function () { setAuthMode(!showingRegister); });
@@ -160,6 +185,7 @@
     logoutBtn.style.display = 'inline-flex';
 
     if (isSessionAdmin(session)) {
+      currentAdminUserId = session.user.id;
       showAdminDashboard();
     } else {
       ensureTutorProfile(session.user).then(function (row) {
@@ -171,6 +197,8 @@
   function showAdminDashboard() {
     tutorDashboardSection.style.display = 'none';
     dashboardSection.style.display = 'block';
+    loadTodayLessons();
+    loadMySchedule();
     loadTutorsAdmin();
     loadScheduleAdmin();
     loadPricingAdmin();
@@ -299,6 +327,7 @@
         '<span style="min-width:110px;">' + escapeHtml(r.lesson_date) + (r.lesson_time ? ' ' + escapeHtml(r.lesson_time) : '') + '</span>' +
         '<span style="flex:1 1 140px;">' + escapeHtml(r.student_name) + '</span>' +
         '<span class="text-muted" style="flex:1 1 160px; font-size:13px;">' + escapeHtml(r.notes) + '</span>' +
+        lessonStatusSelectHtml(r.status) +
         '<button type="button" class="btn btn-danger btn-xs" data-action="delete-lesson">Usuń</button>' +
         '</div>'
       );
@@ -311,6 +340,13 @@
           if (res.error) return;
           loadTutorSchedule();
         });
+      });
+    });
+
+    container.querySelectorAll('[data-action="set-status"]').forEach(function (sel) {
+      sel.addEventListener('change', function () {
+        var id = Number(sel.closest('.admin-row').getAttribute('data-row-id'));
+        client.from('lesson_schedule').update({ status: sel.value }).eq('id', id).then(function () {});
       });
     });
   }
@@ -333,6 +369,125 @@
   // ==========================================================================
   // PANEL ADMINA — ZARZĄDZANIE LEKTORAMI I GRAFIKIEM
   // ==========================================================================
+
+  // ---------- DZISIEJSZE ZAJĘCIA (WIDGET, WSZYSCY LEKTORZY + ADMIN) ----------
+
+  function loadTodayLessons() {
+    Promise.all([
+      client.from('lesson_schedule').select('*').eq('lesson_date', todayIso()).order('lesson_time', { ascending: true }),
+      client.from('tutor_profiles').select('*')
+    ]).then(function (results) {
+      var scheduleRes = results[0];
+      var tutorsRes = results[1];
+      if (scheduleRes.error) return;
+      var tutorsByUserId = {};
+      (tutorsRes.data || []).forEach(function (t) { tutorsByUserId[t.user_id] = t; });
+      renderTodayLessons(scheduleRes.data, tutorsByUserId);
+    });
+  }
+
+  function lessonOwnerName(tutorId, tutorsByUserId) {
+    if (tutorId === currentAdminUserId) return 'Ty (administrator)';
+    var tutor = tutorsByUserId[tutorId];
+    return tutor ? (tutor.name || tutor.pending_name || tutor.email) : tutorId;
+  }
+
+  function renderTodayLessons(rows, tutorsByUserId) {
+    var container = document.querySelector('[data-admin-today]');
+    if (!container) return;
+    container.innerHTML = rows.map(function (r) {
+      return (
+        '<div class="admin-row" data-row-id="' + r.id + '">' +
+        '<span style="min-width:70px;">' + (escapeHtml(r.lesson_time) || '—') + '</span>' +
+        '<strong style="min-width:130px;">' + escapeHtml(lessonOwnerName(r.tutor_id, tutorsByUserId)) + '</strong>' +
+        '<span style="flex:1 1 140px;">' + escapeHtml(r.student_name) + '</span>' +
+        lessonStatusSelectHtml(r.status) +
+        '</div>'
+      );
+    }).join('') || '<p class="text-muted" style="font-size:13px;">Brak zajęć zaplanowanych na dziś.</p>';
+
+    container.querySelectorAll('[data-action="set-status"]').forEach(function (sel) {
+      sel.addEventListener('change', function () {
+        var id = Number(sel.closest('.admin-row').getAttribute('data-row-id'));
+        client.from('lesson_schedule').update({ status: sel.value }).eq('id', id).then(function (res) {
+          if (res.error) return;
+          loadScheduleAdmin();
+          loadMySchedule();
+        });
+      });
+    });
+  }
+
+  // ---------- GRAFIK ZAJĘĆ (WŁASNY, ADMIN) ----------
+  // Działa dokładnie tak samo jak "Twój grafik zajęć" w panelu lektora
+  // (patrz sekcja "GRAFIK ZAJĘĆ (WŁASNY, LEKTOR)" wyżej) — ta sama tabela
+  // lesson_schedule, tylko tutor_id = auth.uid() zalogowanego administratora.
+
+  function loadMySchedule() {
+    if (!currentAdminUserId) return;
+    client
+      .from('lesson_schedule')
+      .select('*')
+      .eq('tutor_id', currentAdminUserId)
+      .order('lesson_date', { ascending: true })
+      .then(function (res) {
+        if (res.error) return;
+        renderMySchedule(res.data);
+      });
+  }
+
+  function renderMySchedule(rows) {
+    var container = document.querySelector('[data-my-schedule]');
+    if (!container) return;
+    container.innerHTML = rows.map(function (r) {
+      return (
+        '<div class="admin-row" data-row-id="' + r.id + '">' +
+        '<span style="min-width:110px;">' + escapeHtml(r.lesson_date) + (r.lesson_time ? ' ' + escapeHtml(r.lesson_time) : '') + '</span>' +
+        '<span style="flex:1 1 140px;">' + escapeHtml(r.student_name) + '</span>' +
+        '<span class="text-muted" style="flex:1 1 160px; font-size:13px;">' + escapeHtml(r.notes) + '</span>' +
+        lessonStatusSelectHtml(r.status) +
+        '<button type="button" class="btn btn-danger btn-xs" data-action="delete-my-lesson">Usuń</button>' +
+        '</div>'
+      );
+    }).join('') || '<p class="text-muted" style="font-size:13px;">Brak zaplanowanych zajęć.</p>';
+
+    container.querySelectorAll('[data-action="delete-my-lesson"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = Number(btn.closest('.admin-row').getAttribute('data-row-id'));
+        client.from('lesson_schedule').delete().eq('id', id).then(function (res) {
+          if (res.error) return;
+          loadMySchedule();
+          loadTodayLessons();
+        });
+      });
+    });
+
+    container.querySelectorAll('[data-action="set-status"]').forEach(function (sel) {
+      sel.addEventListener('change', function () {
+        var id = Number(sel.closest('.admin-row').getAttribute('data-row-id'));
+        client.from('lesson_schedule').update({ status: sel.value }).eq('id', id).then(function (res) {
+          if (res.error) return;
+          loadTodayLessons();
+        });
+      });
+    });
+  }
+
+  var addMyLessonBtn = document.querySelector('[data-action="add-my-lesson"]');
+  if (addMyLessonBtn) {
+    addMyLessonBtn.addEventListener('click', function () {
+      var inputs = document.querySelectorAll('[data-new-my-lesson]');
+      var payload = { tutor_id: currentAdminUserId };
+      inputs.forEach(function (input) { payload[input.getAttribute('data-field')] = input.value.trim(); });
+      if (!payload.student_name || !payload.lesson_date) { return; }
+      client.from('lesson_schedule').insert(payload).then(function (res) {
+        if (res.error) return;
+        inputs.forEach(function (input) { input.value = ''; });
+        loadMySchedule();
+        loadTodayLessons();
+      });
+    });
+  }
 
   function loadTutorsAdmin() {
     client
@@ -479,14 +634,13 @@
     var container = document.querySelector('[data-admin-schedule]');
     if (!container) return;
     container.innerHTML = rows.map(function (r) {
-      var tutor = tutorsByUserId[r.tutor_id];
-      var tutorName = tutor ? (tutor.name || tutor.pending_name || tutor.email) : r.tutor_id;
       return (
         '<div class="admin-row" data-row-id="' + r.id + '">' +
-        '<strong style="min-width:130px;">' + escapeHtml(tutorName) + '</strong>' +
+        '<strong style="min-width:130px;">' + escapeHtml(lessonOwnerName(r.tutor_id, tutorsByUserId)) + '</strong>' +
         '<span style="min-width:110px;">' + escapeHtml(r.lesson_date) + (r.lesson_time ? ' ' + escapeHtml(r.lesson_time) : '') + '</span>' +
         '<span style="flex:1 1 120px;">' + escapeHtml(r.student_name) + '</span>' +
         '<span class="text-muted" style="flex:1 1 160px; font-size:13px;">' + escapeHtml(r.notes) + '</span>' +
+        lessonStatusSelectHtml(r.status) +
         '<button type="button" class="btn btn-danger btn-xs" data-action="delete-schedule-entry">Usuń</button>' +
         '</div>'
       );
@@ -499,6 +653,17 @@
           if (res.error) { showMessage(globalMessage, 'Błąd usuwania: ' + res.error.message, 'error'); return; }
           showMessage(globalMessage, 'Usunięto wpis z grafiku.', 'success');
           loadScheduleAdmin();
+          loadTodayLessons();
+        });
+      });
+    });
+
+    container.querySelectorAll('[data-action="set-status"]').forEach(function (sel) {
+      sel.addEventListener('change', function () {
+        var id = Number(sel.closest('.admin-row').getAttribute('data-row-id'));
+        client.from('lesson_schedule').update({ status: sel.value }).eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd zapisu statusu: ' + res.error.message, 'error'); return; }
+          loadTodayLessons();
         });
       });
     });
