@@ -112,6 +112,27 @@
     return rows;
   }
 
+  // ---------- POMOCNICZE DO WIDOKU TYGODNIOWEGO ("Mój grafik zajęć") ----------
+
+  var WEEKDAY_LABELS = ['Nd', 'Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob'];
+
+  function weekdayLabel(iso) {
+    var parts = iso.split('-');
+    var d = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
+    return WEEKDAY_LABELS[d.getUTCDay()];
+  }
+
+  function displayDateShort(iso) {
+    var parts = iso.split('-');
+    return parts[2] + '.' + parts[1];
+  }
+
+  function lessonChipHtml(r) {
+    var color = r.status === 'cancelled' ? '#B3261E' : (r.status === 'completed' ? 'var(--color-accent-dark)' : 'var(--color-ink)');
+    var timeText = r.lesson_time ? escapeHtml(r.lesson_time) + ' — ' : '';
+    return '<div style="font-size:12.5px; line-height:1.5; color:' + color + ';">' + timeText + escapeHtml(r.student_name) + '</div>';
+  }
+
   // ---------- PRZEŁĄCZNIK LOGOWANIE / REJESTRACJA LEKTORA ----------
 
   var showingRegister = false;
@@ -464,7 +485,69 @@
       .then(function (res) {
         if (res.error) return;
         renderMySchedule(res.data);
+        renderMyScheduleWeek(res.data);
       });
+  }
+
+  // Tabela "Podgląd — najbliższe 7 dni" nad pełną listą — czysty podgląd
+  // (te same dane co lista niżej, tylko ułożone dzień po dniu). Przycisk
+  // "+ Dodaj" pod każdym dniem nie dodaje nic sam z siebie — tylko ustawia
+  // datę w istniejącym formularzu poniżej i przenosi tam kursor, żeby nie
+  // trzeba było budować drugiego, osobnego mechanizmu zapisu.
+  function renderMyScheduleWeek(rows) {
+    var container = document.querySelector('[data-my-schedule-week]');
+    if (!container) return;
+
+    var start = todayIso();
+    var days = [];
+    for (var i = 0; i < 7; i++) days.push(addDaysToIsoDate(start, i));
+
+    var byDay = {};
+    days.forEach(function (d) { byDay[d] = []; });
+    rows.forEach(function (r) {
+      if (byDay.hasOwnProperty(r.lesson_date)) byDay[r.lesson_date].push(r);
+    });
+    days.forEach(function (d) {
+      byDay[d].sort(function (a, b) { return (a.lesson_time || '').localeCompare(b.lesson_time || ''); });
+    });
+
+    var headerHtml = days.map(function (d) {
+      var todayStyle = d === start ? ' style="background:var(--color-accent-soft-bg);"' : '';
+      return '<th' + todayStyle + '>' + weekdayLabel(d) + '<br>' + displayDateShort(d) + '</th>';
+    }).join('');
+
+    var cellsHtml = days.map(function (d) {
+      var todayStyle = d === start ? ' style="background:var(--color-accent-soft-bg); vertical-align:top;"' : '';
+      var lessons = byDay[d];
+      var lessonsHtml = lessons.length
+        ? lessons.map(function (r) { return lessonChipHtml(r); }).join('')
+        : '<span class="text-muted" style="font-size:12px;">—</span>';
+      return (
+        '<td' + todayStyle + '>' +
+        lessonsHtml +
+        '<button type="button" class="btn btn-outline btn-xs" style="margin-top:8px;" data-action="week-add" data-date="' + d + '">+ Dodaj</button>' +
+        '</td>'
+      );
+    }).join('');
+
+    container.innerHTML =
+      '<div class="week-table-scroll"><table class="price-table week-table">' +
+      '<thead><tr>' + headerHtml + '</tr></thead>' +
+      '<tbody><tr>' + cellsHtml + '</tr></tbody>' +
+      '</table></div>';
+
+    container.querySelectorAll('[data-action="week-add"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var iso = btn.getAttribute('data-date');
+        var dateInput = document.querySelector('[data-new-my-lesson][data-field="lesson_date"]');
+        var nameInput = document.querySelector('[data-new-my-lesson][data-field="student_name"]');
+        if (dateInput) dateInput.value = iso;
+        if (nameInput) {
+          nameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          nameInput.focus();
+        }
+      });
+    });
   }
 
   function renderMySchedule(rows) {
@@ -499,6 +582,7 @@
         client.from('lesson_schedule').update({ status: sel.value }).eq('id', id).then(function (res) {
           if (res.error) return;
           loadTodayLessons();
+          loadMySchedule();
         });
       });
     });
@@ -698,6 +782,7 @@
         client.from('lesson_schedule').update({ status: sel.value }).eq('id', id).then(function (res) {
           if (res.error) { showMessage(globalMessage, 'Błąd zapisu statusu: ' + res.error.message, 'error'); return; }
           loadTodayLessons();
+          loadMySchedule();
         });
       });
     });

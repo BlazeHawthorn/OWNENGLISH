@@ -1160,6 +1160,25 @@
   color: var(--color-ink);
 }
 
+/* ---- Admin: podgląd tygodniowy grafiku (tabela, "Mój grafik zajęć") ---- */
+.week-table-scroll {
+  overflow-x: auto;
+}
+
+.week-table {
+  min-width: 720px;
+}
+
+.week-table th {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.week-table td {
+  min-width: 96px;
+  vertical-align: top;
+}
+
 /* ---- Admin: edytor treści stron (site_content) ---- */
 .admin-content-row {
   display: flex;
