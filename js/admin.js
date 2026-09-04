@@ -104,15 +104,48 @@
   // Zamienia jeden wpis grafiku na kilka (co tydzień, ta sama godzina i
   // uczeń) — dla lekcji, które odbywają się regularnie w tym samym terminie.
   // "weeks" to liczba wystąpień łącznie z pierwszym (1 = bez powtarzania).
+  // Wspólny identyfikator dla wszystkich wystąpień jednej serii "Powtarzaj"
+  // — dzięki niemu przycisk "Usuń całą serię" może je usunąć jednym
+  // kliknięciem. Pojedyncze (niepowtarzające się) zajęcia go nie dostają.
+  function generateSeriesId() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+    return 'series-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+  }
+
   function buildRecurringLessonRows(basePayload, weeks) {
     var count = (weeks && weeks > 1) ? weeks : 1;
+    var seriesId = count > 1 ? generateSeriesId() : null;
     var rows = [];
     for (var i = 0; i < count; i++) {
       var row = Object.assign({}, basePayload);
       row.lesson_date = addDaysToIsoDate(basePayload.lesson_date, i * 7);
+      if (seriesId) row.series_id = seriesId;
       rows.push(row);
     }
     return rows;
+  }
+
+  // Wspólna logika przycisku "Usuń całą serię" — pyta o potwierdzenie
+  // (z ostrzeżeniem, jeśli któreś z zajęć w serii są już oznaczone jako
+  // odbyte, bo ich usunięcie wpłynie na wcześniejsze podsumowania zarobku),
+  // a po potwierdzeniu usuwa wszystkie wiersze o tym samym series_id naraz.
+  function confirmAndDeleteSeries(seriesId, allRowsInView, onDone) {
+    var seriesRows = allRowsInView.filter(function (r) { return r.series_id === seriesId; });
+    var completedCount = seriesRows.filter(function (r) { return r.status === 'completed'; }).length;
+    var msg = 'Na pewno usunąć całą serię (' + seriesRows.length + ' zajęć)?';
+    if (completedCount > 0) {
+      msg += ' Uwaga: ' + completedCount + ' z nich jest oznaczonych jako odbyte — ich usunięcie wpłynie na wcześniejsze podsumowania zarobku.';
+    }
+    msg += ' Tej operacji nie można cofnąć.';
+    if (!window.confirm(msg)) return;
+    client.from('lesson_schedule').delete().eq('series_id', seriesId).then(function (res) {
+      if (res.error) return;
+      onDone();
+    });
+  }
+
+  function deleteSeriesButtonHtml(r) {
+    return r.series_id ? '<button type="button" class="btn btn-outline btn-xs" data-action="delete-series">Usuń całą serię</button>' : '';
   }
 
   // ---------- POMOCNICZE DO WIDOKU TYGODNIOWEGO ("Mój grafik zajęć") ----------
@@ -399,13 +432,14 @@
     if (!container) return;
     container.innerHTML = rows.map(function (r) {
       return (
-        '<div class="admin-row" data-row-id="' + r.id + '">' +
+        '<div class="admin-row" data-row-id="' + r.id + '"' + (r.series_id ? ' data-series-id="' + r.series_id + '"' : '') + '>' +
         '<span style="min-width:110px;">' + escapeHtml(r.lesson_date) + (r.lesson_time ? ' ' + escapeHtml(r.lesson_time) : '') + '</span>' +
         '<span class="text-muted" style="min-width:50px; font-size:12px;">' + (r.duration_minutes || 60) + ' min</span>' +
         '<span style="flex:1 1 140px;">' + escapeHtml(r.student_name) + '</span>' +
         '<span class="text-muted" style="flex:1 1 160px; font-size:13px;">' + escapeHtml(r.notes) + '</span>' +
         lessonStatusSelectHtml(r.status) +
         '<button type="button" class="btn btn-danger btn-xs" data-action="delete-lesson">Usuń</button>' +
+        deleteSeriesButtonHtml(r) +
         '</div>'
       );
     }).join('') || '<p class="text-muted" style="font-size:13px;">Brak zaplanowanych zajęć.</p>';
@@ -417,6 +451,13 @@
           if (res.error) return;
           loadTutorSchedule();
         });
+      });
+    });
+
+    container.querySelectorAll('[data-action="delete-series"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var seriesId = btn.closest('.admin-row').getAttribute('data-series-id');
+        confirmAndDeleteSeries(seriesId, rows, loadTutorSchedule);
       });
     });
 
@@ -658,13 +699,14 @@
     if (!container) return;
     container.innerHTML = rows.map(function (r) {
       return (
-        '<div class="admin-row" data-row-id="' + r.id + '">' +
+        '<div class="admin-row" data-row-id="' + r.id + '"' + (r.series_id ? ' data-series-id="' + r.series_id + '"' : '') + '>' +
         '<span style="min-width:110px;">' + escapeHtml(r.lesson_date) + (r.lesson_time ? ' ' + escapeHtml(r.lesson_time) : '') + '</span>' +
         '<span class="text-muted" style="min-width:50px; font-size:12px;">' + (r.duration_minutes || 60) + ' min</span>' +
         '<span style="flex:1 1 140px;">' + escapeHtml(r.student_name) + '</span>' +
         '<span class="text-muted" style="flex:1 1 160px; font-size:13px;">' + escapeHtml(r.notes) + '</span>' +
         lessonStatusSelectHtml(r.status) +
         '<button type="button" class="btn btn-danger btn-xs" data-action="delete-my-lesson">Usuń</button>' +
+        deleteSeriesButtonHtml(r) +
         '</div>'
       );
     }).join('') || '<p class="text-muted" style="font-size:13px;">Brak zaplanowanych zajęć.</p>';
@@ -674,6 +716,16 @@
         var id = Number(btn.closest('.admin-row').getAttribute('data-row-id'));
         client.from('lesson_schedule').delete().eq('id', id).then(function (res) {
           if (res.error) return;
+          loadMySchedule();
+          loadTodayLessons();
+        });
+      });
+    });
+
+    container.querySelectorAll('[data-action="delete-series"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var seriesId = btn.closest('.admin-row').getAttribute('data-series-id');
+        confirmAndDeleteSeries(seriesId, rows, function () {
           loadMySchedule();
           loadTodayLessons();
         });
@@ -860,7 +912,7 @@
     if (!container) return;
     container.innerHTML = rows.map(function (r) {
       return (
-        '<div class="admin-row" data-row-id="' + r.id + '">' +
+        '<div class="admin-row" data-row-id="' + r.id + '"' + (r.series_id ? ' data-series-id="' + r.series_id + '"' : '') + '>' +
         '<strong style="min-width:130px;">' + escapeHtml(lessonOwnerName(r.tutor_id, tutorsByUserId)) + '</strong>' +
         '<span style="min-width:110px;">' + escapeHtml(r.lesson_date) + (r.lesson_time ? ' ' + escapeHtml(r.lesson_time) : '') + '</span>' +
         '<span class="text-muted" style="min-width:50px; font-size:12px;">' + (r.duration_minutes || 60) + ' min</span>' +
@@ -868,6 +920,7 @@
         '<span class="text-muted" style="flex:1 1 160px; font-size:13px;">' + escapeHtml(r.notes) + '</span>' +
         lessonStatusSelectHtml(r.status) +
         '<button type="button" class="btn btn-danger btn-xs" data-action="delete-schedule-entry">Usuń</button>' +
+        deleteSeriesButtonHtml(r) +
         '</div>'
       );
     }).join('') || '<p class="text-muted" style="font-size:13px;">Brak wpisów w grafiku.</p>';
@@ -880,6 +933,18 @@
           showMessage(globalMessage, 'Usunięto wpis z grafiku.', 'success');
           loadScheduleAdmin();
           loadTodayLessons();
+        });
+      });
+    });
+
+    container.querySelectorAll('[data-action="delete-series"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var seriesId = btn.closest('.admin-row').getAttribute('data-series-id');
+        confirmAndDeleteSeries(seriesId, rows, function () {
+          showMessage(globalMessage, 'Usunięto całą serię zajęć.', 'success');
+          loadScheduleAdmin();
+          loadTodayLessons();
+          loadMySchedule();
         });
       });
     });
