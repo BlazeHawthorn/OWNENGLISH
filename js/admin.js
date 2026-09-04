@@ -781,6 +781,7 @@
   }
 
   function tutorStatusBadge(row) {
+    if (!row.user_id) return '<span class="badge badge-outline">Bez konta (dodany ręcznie)</span>';
     if (row.account_status === 'pending') return '<span class="badge badge-outline">Konto: oczekuje</span>';
     if (row.account_status === 'rejected') return '<span class="badge badge-outline">Konto: odrzucone</span>';
     return '<span class="badge badge-outline">Konto: zatwierdzone</span>';
@@ -792,6 +793,7 @@
     latestTutorRows = rows;
     container.innerHTML = rows.map(function (t) {
       var displayName = t.name || t.pending_name || '(bez nazwy)';
+      var isManual = !t.user_id;
       var actions = '';
       if (t.account_status === 'pending') {
         actions += '<button type="button" class="btn btn-outline btn-xs" data-action="approve-account">Zatwierdź konto</button>';
@@ -804,7 +806,10 @@
       if (t.account_status === 'approved') {
         actions += '<label class="admin-checkbox"><input type="checkbox" data-field="published"' + (t.published ? ' checked' : '') + '> opublikowany</label>';
       }
-      actions += '<button type="button" class="btn btn-danger btn-xs" data-action="delete-tutor">Usuń konto</button>';
+      if (isManual) {
+        actions += '<button type="button" class="btn btn-outline btn-xs" data-action="edit-manual-tutor">Edytuj</button>';
+      }
+      actions += '<button type="button" class="btn btn-danger btn-xs" data-action="delete-tutor">' + (isManual ? 'Usuń wizytówkę' : 'Usuń konto') + '</button>';
 
       var pendingPreview = t.has_pending_submission
         ? '<div class="text-muted" style="font-size:13px; margin-top:6px;">Zgłoszone dane: <strong>' + escapeHtml(t.pending_name || '—') + '</strong> — ' + escapeHtml((t.pending_bio || '').slice(0, 140)) + (t.pending_photo_url ? ' · zdjęcie dołączone' : '') + '</div>'
@@ -814,7 +819,7 @@
         '<div class="admin-row-testimonial" data-row-id="' + t.id + '" data-user-id="' + escapeHtml(t.user_id) + '" style="flex-direction:column; align-items:stretch;">' +
         '<div class="row-wrap gap-sm" style="align-items:center;">' +
         '<strong>' + escapeHtml(displayName) + '</strong>' +
-        '<span class="text-muted" style="font-size:13px;">' + escapeHtml(t.email) + '</span>' +
+        (t.email ? '<span class="text-muted" style="font-size:13px;">' + escapeHtml(t.email) + '</span>' : '') +
         tutorStatusBadge(t) +
         '</div>' +
         pendingPreview +
@@ -858,6 +863,11 @@
         updateTutor(checkbox, { published: checkbox.checked });
       });
     });
+    container.querySelectorAll('[data-action="edit-manual-tutor"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        startEditManualTutor(findTutorRow(btn));
+      });
+    });
     container.querySelectorAll('[data-action="delete-tutor"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var row = btn.closest('.admin-row-testimonial');
@@ -885,6 +895,102 @@
       if (res.error) { showMessage(globalMessage, 'Błąd zapisu: ' + res.error.message, 'error'); return; }
       showMessage(globalMessage, 'Zapisano zmianę.', 'success');
       loadTutorsAdmin();
+    });
+  }
+
+  // ---------- LEKTORZY: DODAWANIE RĘCZNE (BEZ KONTA) ----------
+
+  var manualTutorForm = document.getElementById('manual-tutor-form');
+  var manualTutorNameInput = document.getElementById('manual-tutor-name');
+  var manualTutorBioInput = document.getElementById('manual-tutor-bio');
+  var manualTutorPublishedInput = document.getElementById('manual-tutor-published');
+  var manualTutorPhotoInput = document.getElementById('manual-tutor-photo-input');
+  var manualTutorPhotoPreview = document.getElementById('manual-tutor-photo-preview');
+  var manualTutorPhotoMessage = document.getElementById('manual-tutor-photo-message');
+  var manualTutorSubmitBtn = document.getElementById('manual-tutor-submit');
+  var manualTutorCancelBtn = document.getElementById('manual-tutor-cancel');
+  var manualTutorEditId = null;
+  var manualTutorPhotoUrl = '';
+
+  function resetManualTutorForm() {
+    manualTutorEditId = null;
+    manualTutorPhotoUrl = '';
+    if (manualTutorForm) manualTutorForm.reset();
+    if (manualTutorPhotoPreview) manualTutorPhotoPreview.src = 'img/lektor-przyklad.svg';
+    if (manualTutorPhotoMessage) manualTutorPhotoMessage.style.display = 'none';
+    if (manualTutorSubmitBtn) manualTutorSubmitBtn.textContent = 'Dodaj lektora';
+    if (manualTutorCancelBtn) manualTutorCancelBtn.style.display = 'none';
+  }
+
+  function startEditManualTutor(row) {
+    if (!row) return;
+    manualTutorEditId = row.id;
+    manualTutorPhotoUrl = row.photo_url || '';
+    if (manualTutorNameInput) manualTutorNameInput.value = row.name || '';
+    if (manualTutorBioInput) manualTutorBioInput.value = row.bio || '';
+    if (manualTutorPublishedInput) manualTutorPublishedInput.checked = !!row.published;
+    if (manualTutorPhotoPreview) manualTutorPhotoPreview.src = row.photo_url || 'img/lektor-przyklad.svg';
+    if (manualTutorSubmitBtn) manualTutorSubmitBtn.textContent = 'Zapisz zmiany';
+    if (manualTutorCancelBtn) manualTutorCancelBtn.style.display = 'inline-flex';
+    if (manualTutorForm) manualTutorForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (manualTutorNameInput) manualTutorNameInput.focus();
+  }
+
+  if (manualTutorCancelBtn) {
+    manualTutorCancelBtn.addEventListener('click', function () {
+      resetManualTutorForm();
+    });
+  }
+
+  if (manualTutorPhotoInput) {
+    manualTutorPhotoInput.addEventListener('change', function () {
+      var file = manualTutorPhotoInput.files && manualTutorPhotoInput.files[0];
+      if (!file) return;
+      var ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      var path = 'tutor-photos/manual/photo-' + Date.now() + '.' + ext;
+      showMessage(manualTutorPhotoMessage, 'Wgrywanie zdjęcia…', 'success');
+      manualTutorPhotoMessage.style.display = 'block';
+      client.storage.from('media').upload(path, file, { upsert: true }).then(function (uploadRes) {
+        if (uploadRes.error) { showMessage(manualTutorPhotoMessage, 'Błąd wgrywania: ' + uploadRes.error.message, 'error'); return; }
+        var publicUrlRes = client.storage.from('media').getPublicUrl(path);
+        var publicUrl = publicUrlRes.data && publicUrlRes.data.publicUrl;
+        if (!publicUrl) { showMessage(manualTutorPhotoMessage, 'Nie udało się pobrać adresu zdjęcia.', 'error'); return; }
+        manualTutorPhotoUrl = publicUrl;
+        if (manualTutorPhotoPreview) manualTutorPhotoPreview.src = publicUrl;
+        showMessage(manualTutorPhotoMessage, 'Zdjęcie gotowe — zapisze się razem z formularzem.', 'success');
+      });
+    });
+  }
+
+  if (manualTutorForm) {
+    manualTutorForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var name = manualTutorNameInput.value.trim();
+      if (!name) { showMessage(globalMessage, 'Podaj imię i nazwisko lektora.', 'error'); return; }
+      var payload = {
+        name: name,
+        bio: manualTutorBioInput.value.trim(),
+        photo_url: manualTutorPhotoUrl || '',
+        published: !!(manualTutorPublishedInput && manualTutorPublishedInput.checked)
+      };
+      if (manualTutorEditId) {
+        client.from('tutor_profiles').update(payload).eq('id', manualTutorEditId).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd zapisu: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Zapisano zmiany profilu.', 'success');
+          resetManualTutorForm();
+          loadTutorsAdmin();
+        });
+      } else {
+        payload.user_id = null;
+        payload.email = '';
+        payload.account_status = 'approved';
+        client.from('tutor_profiles').insert(payload).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd dodawania: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Dodano lektora.', 'success');
+          resetManualTutorForm();
+          loadTutorsAdmin();
+        });
+      }
     });
   }
 

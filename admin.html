@@ -208,6 +208,34 @@
     <section class="card" style="margin-bottom:32px;">
       <h2 class="h2-sm" style="margin-bottom:6px;">Lektorzy</h2>
       <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Nowe konta czekają na zatwierdzenie, zanim lektor będzie mógł cokolwiek opublikować. Zmiany profilu (imię/opis/zdjęcie) też wymagają Twojej akceptacji za każdym razem.</p>
+
+      <div class="card-outline" style="margin:16px 0 24px; padding:20px;">
+        <h3 class="text-strong" style="font-size:14.5px; margin-bottom:6px;">Dodaj lektora ręcznie (bez konta)</h3>
+        <p class="text-muted" style="font-size:12px; margin-bottom:14px;">Użyj tego, gdy lektor zgodził się na umieszczenie imienia, zdjęcia i opisu, ale nie chce (jeszcze) sam zakładać konta i logować się na stronie — np. na próbę, zanim na dobre dołączy do współpracy. Taki profil nie ma własnego logowania — wszystkie dane wpisujesz i aktualizujesz tutaj, w panelu.</p>
+        <form id="manual-tutor-form" class="stack gap-sm">
+          <div class="field">
+            <label for="manual-tutor-name">Imię i nazwisko</label>
+            <input type="text" id="manual-tutor-name" placeholder="np. Anna Kowalska">
+          </div>
+          <div class="field">
+            <label for="manual-tutor-bio">O lektorze</label>
+            <textarea id="manual-tutor-bio" rows="4" placeholder="Kilka zdań o doświadczeniu i podejściu do nauczania"></textarea>
+          </div>
+          <div class="admin-photo-upload">
+            <img id="manual-tutor-photo-preview" src="img/lektor-przyklad.svg" alt="Podgląd zdjęcia lektora">
+            <div class="stack gap-sm">
+              <input type="file" id="manual-tutor-photo-input" accept="image/png, image/jpeg, image/webp">
+              <div id="manual-tutor-photo-message" class="admin-message" style="display:none;"></div>
+            </div>
+          </div>
+          <label class="admin-checkbox" style="white-space:normal; flex-shrink:1;"><input type="checkbox" id="manual-tutor-published"> opublikowany (widoczny na stronie „Nasz zespół")</label>
+          <div class="row gap-sm">
+            <button type="submit" class="btn btn-primary btn-sm" id="manual-tutor-submit">Dodaj lektora</button>
+            <button type="button" class="btn btn-outline btn-sm" id="manual-tutor-cancel" style="display:none;">Anuluj edycję</button>
+          </div>
+        </form>
+      </div>
+
       <div data-admin-tutors></div>
     </section>
 

@@ -1223,6 +1223,10 @@
   align-items: center;
 }
 
+.admin-photo-upload > * {
+  min-width: 0;
+}
+
 .admin-photo-upload img {
   width: 96px;
   height: 118px;
@@ -1237,6 +1241,8 @@
   font-family: var(--font-body);
   font-size: var(--fs-small);
   color: var(--color-muted);
+  width: 100%;
+  max-width: 100%;
 }
 
 /* ---- Lekcje wideo: karty na lekcje.html ---- */
