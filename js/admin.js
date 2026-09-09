@@ -310,6 +310,7 @@
     loadHourlyRate();
     loadTutorsAdmin();
     loadScheduleAdmin();
+    loadNavVisibility();
     loadPricingAdmin();
     loadTestimonialsAdmin();
     loadContactAdmin();
@@ -1062,6 +1063,43 @@
           if (res.error) { showMessage(globalMessage, 'Błąd zapisu statusu: ' + res.error.message, 'error'); return; }
           loadTodayLessons();
           loadMySchedule();
+        });
+      });
+    });
+  }
+
+  // ---------- WIDOCZNOŚĆ ZAKŁADEK (nav_visibility) ----------
+
+  function loadNavVisibility() {
+    client
+      .from('nav_visibility')
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .then(function (res) {
+        if (res.error) { showMessage(globalMessage, 'Błąd wczytywania zakładek: ' + res.error.message, 'error'); return; }
+        renderNavVisibility(res.data || []);
+      });
+  }
+
+  function renderNavVisibility(rows) {
+    var container = document.querySelector('[data-admin-nav-visibility]');
+    if (!container) return;
+    container.innerHTML = rows.map(function (r) {
+      return (
+        '<label class="admin-checkbox" data-row-id="' + escapeHtml(r.page_key) + '" style="display:flex; justify-content:space-between; align-items:center; white-space:normal; padding:10px 0; border-bottom:1px solid var(--color-border);">' +
+        '<span style="color:var(--color-ink); font-size:14.5px;">' + escapeHtml(r.label || r.page_key) + '</span>' +
+        '<input type="checkbox" data-field="visible"' + (r.visible ? ' checked' : '') + '>' +
+        '</label>'
+      );
+    }).join('') || '<p class="text-muted" style="font-size:13px;">Brak zdefiniowanych zakładek.</p>';
+
+    container.querySelectorAll('[data-field="visible"]').forEach(function (checkbox) {
+      checkbox.addEventListener('change', function () {
+        var key = checkbox.closest('[data-row-id]').getAttribute('data-row-id');
+        var willBeVisible = checkbox.checked;
+        client.from('nav_visibility').update({ visible: willBeVisible }).eq('page_key', key).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd zapisu: ' + res.error.message, 'error'); checkbox.checked = !willBeVisible; return; }
+          showMessage(globalMessage, willBeVisible ? 'Zakładka włączona — wróci do menu i na stronę.' : 'Zakładka wyłączona — zniknie z menu i strona pokaże komunikat „niedostępna".', 'success');
         });
       });
     });

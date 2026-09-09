@@ -37,6 +37,7 @@
     loadFaq();
     loadVideoLessons();
     loadTutors();
+    applyNavVisibility();
   });
 
   function escapeHtml(str) {
@@ -261,5 +262,49 @@
         }).join('');
       })
       .catch(function () { /* zostaw statyczną treść */ });
+  }
+
+  // ---------- WIDOCZNOŚĆ ZAKŁADEK (nav_visibility) ----------
+
+  var NAV_KEY_BY_HREF = {
+    'oferta.html': 'oferta',
+    'dla-firm.html': 'dla-firm',
+    'cennik.html': 'cennik',
+    'o-mnie.html': 'o-mnie',
+    'zespol.html': 'zespol',
+    'lekcje.html': 'lekcje',
+    'faq.html': 'faq'
+  };
+
+  function applyNavVisibility() {
+    client
+      .from('nav_visibility')
+      .select('*')
+      .then(function (res) {
+        if (res.error || !res.data || !res.data.length) return; // brak danych — wszystkie zakładki zostają widoczne
+
+        var hiddenKeys = res.data
+          .filter(function (r) { return r.visible === false; })
+          .map(function (r) { return r.page_key; });
+        if (!hiddenKeys.length) return;
+
+        // 1) ukryj odpowiadające linki wszędzie na stronie (menu górne, stopka,
+        // odnośniki w treści) — nie tylko w głównym menu, żeby link do wyłączonej
+        // strony nie został przypadkiem widoczny gdzie indziej
+        document.querySelectorAll('a[href]').forEach(function (link) {
+          var key = NAV_KEY_BY_HREF[link.getAttribute('href')];
+          if (key && hiddenKeys.indexOf(key) !== -1) link.style.display = 'none';
+        });
+
+        // 2) jeśli TA strona jest wyłączona — zablokuj jej treść komunikatem
+        var thisKey = document.body.getAttribute('data-page-key');
+        if (thisKey && hiddenKeys.indexOf(thisKey) !== -1) {
+          var pageBody = document.getElementById('page-body');
+          var notice = document.getElementById('page-disabled-notice');
+          if (pageBody) pageBody.style.display = 'none';
+          if (notice) notice.style.display = 'block';
+        }
+      })
+      .catch(function () { /* w razie błędu zostają wszystkie zakładki widoczne */ });
   }
 })();
