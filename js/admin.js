@@ -315,6 +315,7 @@
     loadTestimonialsAdmin();
     loadContactAdmin();
     loadFaqAdmin();
+    loadWordsAdmin();
     loadSiteContentAdmin();
     loadPhotoAdmin();
     loadVideosAdmin();
@@ -1361,6 +1362,85 @@
         inputs.forEach(function (input) { input.value = ''; });
         showMessage(globalMessage, 'Dodano nowe pytanie.', 'success');
         loadFaqAdmin();
+      });
+    });
+  }
+
+  // ---------- SŁOWO NA DZIŚ ----------
+
+  function loadWordsAdmin() {
+    client
+      .from('words_of_day')
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .then(function (res) {
+        if (res.error) { showMessage(globalMessage, 'Błąd wczytywania słówek: ' + res.error.message, 'error'); return; }
+        renderWordsAdmin(res.data);
+      });
+  }
+
+  function renderWordsAdmin(rows) {
+    var container = document.querySelector('[data-admin-words]');
+    if (!container) return;
+    container.innerHTML = rows.map(function (w) {
+      return (
+        '<div class="admin-row-testimonial" data-row-id="' + w.id + '">' +
+        '<input type="text" value="' + escapeHtml(w.word) + '" data-field="word" placeholder="Słówko">' +
+        '<input type="text" value="' + escapeHtml(w.part_of_speech) + '" data-field="part_of_speech" placeholder="Część mowy">' +
+        '<input type="text" value="' + escapeHtml(w.pronunciation) + '" data-field="pronunciation" placeholder="Wymowa">' +
+        '<input type="text" value="' + escapeHtml(w.dialect_label) + '" data-field="dialect_label" placeholder="Etykieta">' +
+        '<textarea data-field="definition" placeholder="Wyjaśnienie">' + escapeHtml(w.definition) + '</textarea>' +
+        '<label class="admin-checkbox"><input type="checkbox" data-field="published"' + (w.published ? ' checked' : '') + '> opublikowane</label>' +
+        '<button type="button" class="btn btn-outline btn-xs" data-action="save-word">Zapisz</button>' +
+        '<button type="button" class="btn btn-danger btn-xs" data-action="delete-word">Usuń</button>' +
+        '</div>'
+      );
+    }).join('') || '<p class="text-muted" style="font-size:13px;">Brak zapisanych słówek.</p>';
+
+    container.querySelectorAll('[data-action="save-word"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row-testimonial');
+        var id = Number(row.getAttribute('data-row-id'));
+        var payload = {
+          word: row.querySelector('[data-field="word"]').value.trim(),
+          part_of_speech: row.querySelector('[data-field="part_of_speech"]').value.trim(),
+          pronunciation: row.querySelector('[data-field="pronunciation"]').value.trim(),
+          dialect_label: row.querySelector('[data-field="dialect_label"]').value.trim(),
+          definition: row.querySelector('[data-field="definition"]').value.trim(),
+          published: row.querySelector('[data-field="published"]').checked
+        };
+        client.from('words_of_day').update(payload).eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd zapisu: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Zapisano słówko.', 'success');
+        });
+      });
+    });
+
+    container.querySelectorAll('[data-action="delete-word"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row-testimonial');
+        var id = Number(row.getAttribute('data-row-id'));
+        client.from('words_of_day').delete().eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd usuwania: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Usunięto słówko.', 'success');
+          loadWordsAdmin();
+        });
+      });
+    });
+  }
+
+  var addWordBtn = document.querySelector('[data-action="add-word"]');
+  if (addWordBtn) {
+    addWordBtn.addEventListener('click', function () {
+      var inputs = document.querySelectorAll('[data-new-word]');
+      var payload = { sort_order: 999, published: true };
+      inputs.forEach(function (input) { payload[input.getAttribute('data-field')] = input.value.trim(); });
+      if (!payload.word || !payload.definition) { showMessage(globalMessage, 'Podaj przynajmniej słówko i wyjaśnienie.', 'error'); return; }
+      client.from('words_of_day').insert(payload).then(function (res) {
+        if (res.error) { showMessage(globalMessage, 'Błąd dodawania: ' + res.error.message, 'error'); return; }
+        inputs.forEach(function (input) { input.value = ''; });
+        showMessage(globalMessage, 'Dodano nowe słówko.', 'success');
+        loadWordsAdmin();
       });
     });
   }

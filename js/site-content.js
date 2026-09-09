@@ -37,6 +37,7 @@
     loadFaq();
     loadVideoLessons();
     loadTutors();
+    loadWordOfDay();
     applyNavVisibility();
   });
 
@@ -262,6 +263,40 @@
         }).join('');
       })
       .catch(function () { /* zostaw statyczną treść */ });
+  }
+
+  // ---------- SŁOWO NA DZIŚ (words_of_day) ----------
+
+  function loadWordOfDay() {
+    var card = document.querySelector('[data-word-of-day]');
+    if (!card) return;
+
+    client
+      .from('words_of_day')
+      .select('*')
+      .eq('published', true)
+      .order('sort_order', { ascending: true })
+      .then(function (res) {
+        if (res.error || !res.data || !res.data.length) return; // zostaje statyczna karta z HTML
+
+        // Ten sam dzień = to samo słówko dla każdego odwiedzającego; lista
+        // zapętla się od początku, gdy się skończy.
+        var epochDay = Math.floor(Date.now() / 86400000);
+        var word = res.data[epochDay % res.data.length];
+
+        function setField(name, value) {
+          if (!value) return;
+          var el = card.querySelector('[data-word-field="' + name + '"]');
+          if (el) el.textContent = value;
+        }
+
+        setField('word', word.word);
+        setField('part_of_speech', word.part_of_speech);
+        setField('pronunciation', word.pronunciation);
+        setField('dialect_label', word.dialect_label);
+        setField('definition', word.definition);
+      })
+      .catch(function () { /* zostaw statyczną kartę */ });
   }
 
   // ---------- WIDOCZNOŚĆ ZAKŁADEK (nav_visibility) ----------

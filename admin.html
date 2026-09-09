@@ -305,6 +305,21 @@
       </div>
     </section>
 
+    <!-- SŁOWO NA DZIŚ -->
+    <section class="card" style="margin-bottom:32px;">
+      <h2 class="h2-sm" style="margin-bottom:6px;">Słowo na dziś</h2>
+      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Karta „Słowo na dziś” na stronie głównej codziennie pokazuje kolejne słówko z tej listy, a po jej wyczerpaniu zaczyna od początku. Odznacz „opublikowane”, żeby wykluczyć słówko z rotacji bez jego usuwania.</p>
+      <div data-admin-words></div>
+      <div class="admin-add-row">
+        <input type="text" data-new-word data-field="word" placeholder="Słówko (np. understood)">
+        <input type="text" data-new-word data-field="part_of_speech" placeholder="Część mowy (np. przym.)">
+        <input type="text" data-new-word data-field="pronunciation" placeholder="Wymowa (np. /ˌʌndərˈstʊd/)">
+        <input type="text" data-new-word data-field="dialect_label" placeholder="Etykieta (np. AmE)">
+        <textarea data-new-word data-field="definition" placeholder="Polskie wyjaśnienie"></textarea>
+        <button type="button" class="btn btn-primary btn-sm" data-action="add-word">+ Dodaj słówko</button>
+      </div>
+    </section>
+
     <!-- TREŚCI STRON -->
     <section class="card" style="margin-bottom:32px;">
       <h2 class="h2-sm" style="margin-bottom:6px;">Treści stron</h2>
