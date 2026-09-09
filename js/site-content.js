@@ -332,6 +332,7 @@
           var dateLabel = formatWebinarDate(w.event_date, w.event_time);
           return (
             '<div class="card stack gap-sm">' +
+            (w.image_url ? '<img src="' + escapeHtml(w.image_url) + '" alt="' + escapeHtml(w.title) + '" class="webinar-image">' : '') +
             '<div class="row-wrap gap-sm" style="justify-content:space-between; align-items:flex-start;">' +
             '<h3 style="font-size:19px;">' + escapeHtml(w.title) + '</h3>' +
             (dateLabel ? '<span class="badge badge-tint" style="white-space:nowrap;">' + escapeHtml(dateLabel) + '</span>' : '') +
@@ -339,11 +340,71 @@
             '<div class="text-muted" style="font-size:14px;"><strong style="color:var(--color-ink);">' + escapeHtml(w.speaker_name) + '</strong>' + (w.speaker_bio ? ' — ' + escapeHtml(w.speaker_bio) : '') + '</div>' +
             (w.description ? '<p style="font-size:14.5px;">' + escapeHtml(w.description) + '</p>' : '') +
             (w.link_url ? '<a href="' + escapeHtml(w.link_url) + '" class="btn btn-primary btn-sm" style="width:fit-content;" target="_blank" rel="noopener">' + escapeHtml(w.link_label || 'Dołącz') + '</a>' : '') +
+            '<div class="webinar-registration">' +
+            '<p class="text-strong" style="font-size:14px; margin-bottom:10px;">Zapisz się na ten webinar</p>' +
+            '<form class="stack gap-sm" data-webinar-register-form data-webinar-id="' + w.id + '">' +
+            '<div class="field">' +
+            '<label for="webinar-name-' + w.id + '">Imię i nazwisko</label>' +
+            '<input type="text" id="webinar-name-' + w.id + '" data-webinar-name required placeholder="Twoje imię i nazwisko">' +
+            '</div>' +
+            '<div class="field">' +
+            '<label for="webinar-email-' + w.id + '">E-mail</label>' +
+            '<input type="email" id="webinar-email-' + w.id + '" data-webinar-email required placeholder="ty@przyklad.pl">' +
+            '</div>' +
+            '<label class="form-consent">' +
+            '<input type="checkbox" data-webinar-consent required>' +
+            '<span>Zgadzam się na przetwarzanie moich danych (imię, e-mail) w celu zapisania mnie na ten webinar.</span>' +
+            '</label>' +
+            '<button type="submit" class="btn btn-primary btn-sm" style="width:fit-content;">Zapisz się</button>' +
+            '<div class="admin-message" data-webinar-register-message style="display:none;"></div>' +
+            '</form>' +
+            '</div>' +
             '</div>'
           );
         }).join('');
+
+        wrap.querySelectorAll('[data-webinar-register-form]').forEach(function (form) {
+          form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var webinarId = Number(form.getAttribute('data-webinar-id'));
+            var nameInput = form.querySelector('[data-webinar-name]');
+            var emailInput = form.querySelector('[data-webinar-email]');
+            var consentInput = form.querySelector('[data-webinar-consent]');
+            var messageEl = form.querySelector('[data-webinar-register-message]');
+            var name = nameInput.value.trim();
+            var email = emailInput.value.trim();
+            if (!name || !email || !consentInput.checked) {
+              setInlineMessage(messageEl, 'Uzupełnij imię, e-mail i zaznacz zgodę na przetwarzanie danych.', 'error');
+              return;
+            }
+            var submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+            client.from('webinar_registrations').insert({
+              webinar_id: webinarId,
+              name: name,
+              email: email,
+              consent: true
+            }).then(function (res) {
+              if (submitBtn) submitBtn.disabled = false;
+              if (res.error) {
+                var isDuplicate = res.error.code === '23505' || /duplicate|unique/i.test(res.error.message || '');
+                setInlineMessage(messageEl, isDuplicate ? 'Jesteś już zapisany/a na ten webinar — do zobaczenia!' : 'Błąd zapisu: ' + res.error.message, isDuplicate ? 'success' : 'error');
+                return;
+              }
+              setInlineMessage(messageEl, 'Zapisano! Do zobaczenia na webinarze.', 'success');
+              form.reset();
+            });
+          });
+        });
       })
       .catch(function () { /* zostaw statyczną treść */ });
+  }
+
+  function setInlineMessage(el, text, kind) {
+    if (!el) return;
+    el.textContent = text;
+    el.className = 'admin-message is-' + kind;
+    el.style.display = 'block';
   }
 
   // ---------- WIDOCZNOŚĆ ZAKŁADEK (nav_visibility) ----------

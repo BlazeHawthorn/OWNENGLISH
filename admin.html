@@ -365,9 +365,17 @@
     <!-- WEBINARY -->
     <section class="card" style="margin-bottom:32px;">
       <h2 class="h2-sm" style="margin-bottom:6px;">Webinary</h2>
-      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Lista widoczna na stronie „Webinary”, posortowana po dacie. Link może prowadzić do czegokolwiek (Zoom, Google Meet, Calendly, nagranie na YouTube) — sam podpisujesz przycisk (np. „Dołącz” albo „Zobacz nagranie”). Odznacz „opublikowany”, żeby chwilowo ukryć webinar bez jego usuwania.</p>
+      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Lista widoczna na stronie „Webinary”, posortowana po dacie. Link może prowadzić do czegokolwiek (Zoom, Google Meet, Calendly, nagranie na YouTube) — sam podpisujesz przycisk (np. „Dołącz” albo „Zobacz nagranie”). Odznacz „opublikowany”, żeby chwilowo ukryć webinar bez jego usuwania. Odwiedzający mogą zapisać się na webinar (imię + e-mail) nawet jeśli jest bezpłatny — liczbę zapisanych i listę zobaczysz przy każdym webinarze niżej.</p>
       <div data-admin-webinars></div>
       <div class="admin-add-row">
+        <div class="admin-photo-upload admin-photo-upload-wide" style="width:100%;">
+          <img id="new-webinar-image-preview" src="" alt="Podgląd obrazka marketingowego" style="display:none;">
+          <div class="stack gap-sm">
+            <input type="file" id="new-webinar-image-input" accept="image/png, image/jpeg, image/webp">
+            <p class="text-muted" style="font-size:12px;">Obrazek marketingowy (opcjonalnie) — pojawi się na karcie webinaru razem z tematem, datą i godziną.</p>
+            <div id="new-webinar-image-message" class="admin-message" style="display:none;"></div>
+          </div>
+        </div>
         <input type="text" data-new-webinar data-field="title" placeholder="Temat webinaru">
         <input type="text" data-new-webinar data-field="speaker_name" placeholder="Imię i nazwisko prowadzącego">
         <input type="text" data-new-webinar data-field="speaker_bio" placeholder="O prowadzącym (np. Filolog angielski, UW)">
