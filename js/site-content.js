@@ -38,6 +38,7 @@
     loadVideoLessons();
     loadTutors();
     loadWordOfDay();
+    loadWebinars();
     applyNavVisibility();
   });
 
@@ -299,6 +300,52 @@
       .catch(function () { /* zostaw statyczną kartę */ });
   }
 
+  // ---------- WEBINARY (webinars) ----------
+
+  var MONTHS_PL_GENITIVE = ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'];
+
+  function formatWebinarDate(dateStr, timeStr) {
+    if (!dateStr) return '';
+    var parts = dateStr.split('-'); // oczekiwany format YYYY-MM-DD
+    if (parts.length !== 3) return dateStr;
+    var day = parseInt(parts[2], 10);
+    var month = MONTHS_PL_GENITIVE[parseInt(parts[1], 10) - 1] || '';
+    var label = day + ' ' + month + ' ' + parts[0];
+    if (timeStr) label += ', ' + timeStr;
+    return label;
+  }
+
+  function loadWebinars() {
+    var wrap = document.querySelector('[data-webinars-list]');
+    if (!wrap) return;
+
+    client
+      .from('webinars')
+      .select('*')
+      .eq('published', true)
+      .order('event_date', { ascending: true })
+      .order('sort_order', { ascending: true })
+      .then(function (res) {
+        if (res.error || !res.data || !res.data.length) return; // zostaje komunikat "wkrótce" z HTML
+
+        wrap.innerHTML = res.data.map(function (w) {
+          var dateLabel = formatWebinarDate(w.event_date, w.event_time);
+          return (
+            '<div class="card stack gap-sm">' +
+            '<div class="row-wrap gap-sm" style="justify-content:space-between; align-items:flex-start;">' +
+            '<h3 style="font-size:19px;">' + escapeHtml(w.title) + '</h3>' +
+            (dateLabel ? '<span class="badge badge-tint" style="white-space:nowrap;">' + escapeHtml(dateLabel) + '</span>' : '') +
+            '</div>' +
+            '<div class="text-muted" style="font-size:14px;"><strong style="color:var(--color-ink);">' + escapeHtml(w.speaker_name) + '</strong>' + (w.speaker_bio ? ' — ' + escapeHtml(w.speaker_bio) : '') + '</div>' +
+            (w.description ? '<p style="font-size:14.5px;">' + escapeHtml(w.description) + '</p>' : '') +
+            (w.link_url ? '<a href="' + escapeHtml(w.link_url) + '" class="btn btn-primary btn-sm" style="width:fit-content;" target="_blank" rel="noopener">' + escapeHtml(w.link_label || 'Dołącz') + '</a>' : '') +
+            '</div>'
+          );
+        }).join('');
+      })
+      .catch(function () { /* zostaw statyczną treść */ });
+  }
+
   // ---------- WIDOCZNOŚĆ ZAKŁADEK (nav_visibility) ----------
 
   var NAV_KEY_BY_HREF = {
@@ -308,6 +355,7 @@
     'o-mnie.html': 'o-mnie',
     'zespol.html': 'zespol',
     'lekcje.html': 'lekcje',
+    'webinary.html': 'webinary',
     'faq.html': 'faq'
   };
 

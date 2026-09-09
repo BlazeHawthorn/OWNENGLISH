@@ -362,6 +362,24 @@
       </div>
     </section>
 
+    <!-- WEBINARY -->
+    <section class="card" style="margin-bottom:32px;">
+      <h2 class="h2-sm" style="margin-bottom:6px;">Webinary</h2>
+      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Lista widoczna na stronie „Webinary”, posortowana po dacie. Link może prowadzić do czegokolwiek (Zoom, Google Meet, Calendly, nagranie na YouTube) — sam podpisujesz przycisk (np. „Dołącz” albo „Zobacz nagranie”). Odznacz „opublikowany”, żeby chwilowo ukryć webinar bez jego usuwania.</p>
+      <div data-admin-webinars></div>
+      <div class="admin-add-row">
+        <input type="text" data-new-webinar data-field="title" placeholder="Temat webinaru">
+        <input type="text" data-new-webinar data-field="speaker_name" placeholder="Imię i nazwisko prowadzącego">
+        <input type="text" data-new-webinar data-field="speaker_bio" placeholder="O prowadzącym (np. Filolog angielski, UW)">
+        <input type="date" data-new-webinar data-field="event_date">
+        <input type="time" data-new-webinar data-field="event_time">
+        <textarea data-new-webinar data-field="description" placeholder="Opis webinaru (opcjonalnie)"></textarea>
+        <input type="text" data-new-webinar data-field="link_url" placeholder="Link (Zoom / Meet / YouTube / Calendly...)">
+        <input type="text" data-new-webinar data-field="link_label" placeholder="Podpis przycisku (np. Dołącz)">
+        <button type="button" class="btn btn-primary btn-sm" data-action="add-webinar">+ Dodaj webinar</button>
+      </div>
+    </section>
+
     <!-- DANE KONTAKTOWE -->
     <section class="card" style="margin-bottom:32px;">
       <h2 class="h2-sm" style="margin-bottom:6px;">Dane kontaktowe</h2>

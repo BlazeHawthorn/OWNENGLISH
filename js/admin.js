@@ -319,6 +319,7 @@
     loadSiteContentAdmin();
     loadPhotoAdmin();
     loadVideosAdmin();
+    loadWebinarsAdmin();
   }
 
   client.auth.getSession().then(function (res) {
@@ -1635,6 +1636,98 @@
         inputs.forEach(function (input) { input.value = ''; });
         showMessage(globalMessage, 'Dodano nową lekcję wideo.', 'success');
         loadVideosAdmin();
+      });
+    });
+  }
+
+  // ---------- WEBINARY ----------
+
+  function loadWebinarsAdmin() {
+    client
+      .from('webinars')
+      .select('*')
+      .order('event_date', { ascending: true })
+      .order('sort_order', { ascending: true })
+      .then(function (res) {
+        if (res.error) { showMessage(globalMessage, 'Błąd wczytywania webinarów: ' + res.error.message, 'error'); return; }
+        renderWebinarsAdmin(res.data);
+      });
+  }
+
+  function renderWebinarsAdmin(rows) {
+    var container = document.querySelector('[data-admin-webinars]');
+    if (!container) return;
+    container.innerHTML = rows.map(function (w) {
+      return (
+        '<div class="admin-row-testimonial" data-row-id="' + w.id + '" style="flex-direction:column; align-items:stretch;">' +
+        '<div class="admin-add-row" style="margin:0;">' +
+        '<input type="text" value="' + escapeHtml(w.title) + '" data-field="title" placeholder="Temat webinaru">' +
+        '<input type="text" value="' + escapeHtml(w.speaker_name) + '" data-field="speaker_name" placeholder="Prowadzący">' +
+        '<input type="text" value="' + escapeHtml(w.speaker_bio) + '" data-field="speaker_bio" placeholder="O prowadzącym">' +
+        '<input type="date" value="' + escapeHtml(w.event_date || '') + '" data-field="event_date">' +
+        '<input type="time" value="' + escapeHtml(w.event_time || '') + '" data-field="event_time">' +
+        '<textarea data-field="description" placeholder="Opis">' + escapeHtml(w.description) + '</textarea>' +
+        '<input type="text" value="' + escapeHtml(w.link_url) + '" data-field="link_url" placeholder="Link">' +
+        '<input type="text" value="' + escapeHtml(w.link_label) + '" data-field="link_label" placeholder="Podpis przycisku">' +
+        '</div>' +
+        '<div class="row-wrap gap-sm" style="margin-top:8px; align-items:center;">' +
+        '<label class="admin-checkbox"><input type="checkbox" data-field="published"' + (w.published ? ' checked' : '') + '> opublikowany</label>' +
+        '<button type="button" class="btn btn-outline btn-xs" data-action="save-webinar">Zapisz</button>' +
+        '<button type="button" class="btn btn-danger btn-xs" data-action="delete-webinar">Usuń</button>' +
+        '</div>' +
+        '</div>'
+      );
+    }).join('') || '<p class="text-muted" style="font-size:13px;">Brak zapisanych webinarów.</p>';
+
+    container.querySelectorAll('[data-action="save-webinar"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row-testimonial');
+        var id = Number(row.getAttribute('data-row-id'));
+        var payload = {
+          title: row.querySelector('[data-field="title"]').value.trim(),
+          speaker_name: row.querySelector('[data-field="speaker_name"]').value.trim(),
+          speaker_bio: row.querySelector('[data-field="speaker_bio"]').value.trim(),
+          event_date: row.querySelector('[data-field="event_date"]').value || null,
+          event_time: row.querySelector('[data-field="event_time"]').value.trim(),
+          description: row.querySelector('[data-field="description"]').value.trim(),
+          link_url: row.querySelector('[data-field="link_url"]').value.trim(),
+          link_label: row.querySelector('[data-field="link_label"]').value.trim(),
+          published: row.querySelector('[data-field="published"]').checked
+        };
+        client.from('webinars').update(payload).eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd zapisu: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Zapisano webinar.', 'success');
+          loadWebinarsAdmin();
+        });
+      });
+    });
+
+    container.querySelectorAll('[data-action="delete-webinar"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row-testimonial');
+        var id = Number(row.getAttribute('data-row-id'));
+        client.from('webinars').delete().eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd usuwania: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Usunięto webinar.', 'success');
+          loadWebinarsAdmin();
+        });
+      });
+    });
+  }
+
+  var addWebinarBtn = document.querySelector('[data-action="add-webinar"]');
+  if (addWebinarBtn) {
+    addWebinarBtn.addEventListener('click', function () {
+      var inputs = document.querySelectorAll('[data-new-webinar]');
+      var payload = { sort_order: 999, published: true };
+      inputs.forEach(function (input) { payload[input.getAttribute('data-field')] = input.value.trim(); });
+      if (!payload.event_date) payload.event_date = null;
+      if (!payload.title || !payload.speaker_name) { showMessage(globalMessage, 'Podaj przynajmniej temat i prowadzącego.', 'error'); return; }
+      client.from('webinars').insert(payload).then(function (res) {
+        if (res.error) { showMessage(globalMessage, 'Błąd dodawania: ' + res.error.message, 'error'); return; }
+        inputs.forEach(function (input) { input.value = ''; });
+        showMessage(globalMessage, 'Dodano nowy webinar.', 'success');
+        loadWebinarsAdmin();
       });
     });
   }
