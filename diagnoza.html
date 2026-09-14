@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diagnoza pogłębiona — OwnEnglish</title>
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+
+  <div class="container">
+    <div class="admin-topbar">
+      <a href="index.html" class="logo">
+        <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 10C8 7.79 9.79 6 12 6H28C30.21 6 32 7.79 32 10V22C32 24.21 30.21 26 28 26H16L9 32V26H12C9.79 26 8 24.21 8 22V10Z" stroke="#16A34A" stroke-width="2.4" stroke-linejoin="round"/>
+          <path d="M13.5 14.5C13.5 14.5 15.5 12.3 18 14.5C20.5 16.7 22.5 12.3 25 14.5" stroke="#16A34A" stroke-width="2.1" stroke-linecap="round"/>
+          <path d="M13.5 19.5H24.5" stroke="#16A34A" stroke-width="2.1" stroke-linecap="round"/>
+        </svg>
+        <span class="logo-text">OwnEnglish</span>
+      </a>
+      <span class="text-muted" style="font-size:13px; font-weight:600;">Diagnoza pogłębiona</span>
+    </div>
+  </div>
+
+  <!-- BRAMA KODU DOSTĘPU -->
+  <div id="gate-screen" class="container" style="max-width:480px; padding-top:56px; padding-bottom:80px;">
+    <div class="card stack gap-md" style="gap:16px;">
+      <span class="eyebrow">Dostęp dla kursantów</span>
+      <h1 class="h2-sm">Wpisz kod dostępu</h1>
+      <p class="text-muted" style="font-size:14px;">Ta strona jest dostępna wyłącznie dla kursantów, którzy otrzymali indywidualny kod od swojego lektora. Jeśli nie masz kodu, poproś o niego swojego lektora.</p>
+      <div class="field">
+        <label for="gate-code">Kod dostępu</label>
+        <input type="text" id="gate-code" placeholder="np. AB12CD34" autocomplete="off">
+      </div>
+      <div id="gate-error" class="admin-message is-error" style="display:none;"></div>
+      <button type="button" id="gate-submit" class="btn btn-primary" style="width:100%;">Wejdź →</button>
+    </div>
+  </div>
+
+  <!-- WYBÓR TESTU -->
+  <div id="menu-screen" class="container" style="max-width:680px; padding-top:56px; padding-bottom:80px; display:none;">
+    <div class="stack gap-md" style="gap:8px; margin-bottom:24px;">
+      <span class="eyebrow">Witaj, <span id="menu-student-name"></span></span>
+      <h1 class="h2-sm">Wybierz test, który chcesz zrobić</h1>
+      <p class="text-muted" style="font-size:14px;">Każdy z testów zajmuje około 40–60 minut i sprawdza gramatykę, słownictwo, czytanie, słuchanie, pisanie oraz (razem z lektorem) mówienie.</p>
+    </div>
+    <div class="grid grid-2" style="gap:20px;">
+      <button type="button" class="card" id="choose-general" style="text-align:left; cursor:pointer;">
+        <h3 class="h2-sm" style="font-size:19px;">Test ogólny</h3>
+        <p class="text-muted" style="font-size:13.5px; margin-top:6px;">Codzienne sytuacje — rodzina, podróże, zakupy, praca, opinie.</p>
+      </button>
+      <button type="button" class="card" id="choose-business" style="text-align:left; cursor:pointer;">
+        <h3 class="h2-sm" style="font-size:19px;">Test biznesowy</h3>
+        <p class="text-muted" style="font-size:13.5px; margin-top:6px;">Sytuacje zawodowe — maile, spotkania, negocjacje, raporty.</p>
+      </button>
+    </div>
+  </div>
+
+  <!-- SILNIK TESTU -->
+  <div id="engine-screen" style="display:none; padding-block:32px; padding-inline:16px;">
+    <div id="app" style="max-width:760px; margin:0 auto; display:flex; flex-direction:column; gap:22px;"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/diagnoza-content-general.js"></script>
+  <script src="js/diagnoza-content-business.js"></script>
+  <script src="js/diagnoza-engine.js"></script>
+</body>
+</html>

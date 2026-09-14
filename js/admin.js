@@ -320,6 +320,7 @@
     loadPhotoAdmin();
     loadVideosAdmin();
     loadWebinarsAdmin();
+    loadDiagnosisAdmin();
   }
 
   client.auth.getSession().then(function (res) {
@@ -1748,24 +1749,46 @@
       });
     });
 
+    function renderRegistrationsList(list, webinarId, countEl) {
+      client.from('webinar_registrations').select('*').eq('webinar_id', webinarId).order('created_at', { ascending: true }).then(function (res) {
+        if (res.error) { showMessage(globalMessage, 'Błąd wczytywania zgłoszeń: ' + res.error.message, 'error'); return; }
+        if (countEl) countEl.textContent = 'Zapisani: ' + res.data.length;
+        list.innerHTML = res.data.length
+          ? res.data.map(function (r) {
+              return (
+                '<div class="admin-registrations-list-item row-wrap gap-sm" style="justify-content:space-between; align-items:center;" data-registration-id="' + r.id + '">' +
+                '<span>' + escapeHtml(r.name) + ' — ' + escapeHtml(r.email) + '</span>' +
+                '<button type="button" class="btn btn-danger btn-xs" data-action="delete-registration" data-registration-id="' + r.id + '" data-webinar-id="' + webinarId + '">Usuń</button>' +
+                '</div>'
+              );
+            }).join('')
+          : '<p class="text-muted" style="font-size:12.5px;">Nikt jeszcze się nie zapisał.</p>';
+
+        list.querySelectorAll('[data-action="delete-registration"]').forEach(function (delBtn) {
+          delBtn.addEventListener('click', function () {
+            var regId = Number(delBtn.getAttribute('data-registration-id'));
+            client.from('webinar_registrations').delete().eq('id', regId).then(function (delRes) {
+              if (delRes.error) { showMessage(globalMessage, 'Błąd usuwania zgłoszenia: ' + delRes.error.message, 'error'); return; }
+              showMessage(globalMessage, 'Usunięto zgłoszenie.', 'success');
+              renderRegistrationsList(list, webinarId, countEl);
+            });
+          });
+        });
+      });
+    }
+
     container.querySelectorAll('[data-action="toggle-webinar-regs"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var row = btn.closest('.admin-row-testimonial');
         var id = Number(row.getAttribute('data-row-id'));
         var list = row.querySelector('[data-webinar-regs-list]');
+        var countEl = row.querySelector('[data-webinar-reg-count]');
         if (!list) return;
         var isHidden = list.style.display === 'none' || !list.style.display;
         if (!isHidden) { list.style.display = 'none'; btn.textContent = 'Pokaż zgłoszenia'; return; }
-        client.from('webinar_registrations').select('*').eq('webinar_id', id).order('created_at', { ascending: true }).then(function (res) {
-          if (res.error) { showMessage(globalMessage, 'Błąd wczytywania zgłoszeń: ' + res.error.message, 'error'); return; }
-          list.innerHTML = res.data.length
-            ? res.data.map(function (r) {
-                return '<div class="admin-registrations-list-item">' + escapeHtml(r.name) + ' — ' + escapeHtml(r.email) + '</div>';
-              }).join('')
-            : '<p class="text-muted" style="font-size:12.5px;">Nikt jeszcze się nie zapisał.</p>';
-          list.style.display = 'block';
-          btn.textContent = 'Ukryj zgłoszenia';
-        });
+        renderRegistrationsList(list, id, countEl);
+        list.style.display = 'block';
+        btn.textContent = 'Ukryj zgłoszenia';
       });
     });
 
@@ -1826,6 +1849,154 @@
         if (newWebinarImageMessage) newWebinarImageMessage.style.display = 'none';
         showMessage(globalMessage, 'Dodano nowy webinar.', 'success');
         loadWebinarsAdmin();
+      });
+    });
+  }
+
+  // ---------- DIAGNOZA POGŁĘBIONA: kody dostępu ----------
+
+  function loadDiagnosisAdmin() {
+    loadDiagnosisCodesAdmin();
+    loadDiagnosisResultsAdmin();
+  }
+
+  function loadDiagnosisCodesAdmin() {
+    client.from('diagnosis_codes').select('*').order('created_at', { ascending: false }).then(function (res) {
+      if (res.error) { showMessage(globalMessage, 'Błąd wczytywania kodów: ' + res.error.message, 'error'); return; }
+      renderDiagnosisCodesAdmin(res.data);
+    });
+  }
+
+  function renderDiagnosisCodesAdmin(rows) {
+    var container = document.querySelector('[data-admin-diagnosis-codes]');
+    if (!container) return;
+    container.innerHTML = rows.map(function (c) {
+      var statusLabel = c.used_at ? ('użyty ' + new Date(c.used_at).toLocaleDateString('pl-PL')) : 'nieużyty';
+      return (
+        '<div class="admin-row-testimonial" data-row-id="' + c.id + '">' +
+        '<div class="stack gap-xs" style="flex:1 1 220px;">' +
+        '<span class="text-strong">' + escapeHtml(c.student_name || '(bez nazwiska)') + '</span>' +
+        '<span class="text-muted" style="font-size:12.5px;"><code>' + escapeHtml(c.code) + '</code> · ' + statusLabel + '</span>' +
+        '</div>' +
+        '<button type="button" class="btn btn-outline btn-xs" data-action="copy-diagnosis-code">Kopiuj kod</button>' +
+        '<label class="admin-checkbox"><input type="checkbox" data-field="active"' + (c.active ? ' checked' : '') + '> aktywny</label>' +
+        '<button type="button" class="btn btn-danger btn-xs" data-action="delete-diagnosis-code">Usuń</button>' +
+        '</div>'
+      );
+    }).join('') || '<p class="text-muted" style="font-size:13px;">Brak wygenerowanych kodów.</p>';
+
+    container.querySelectorAll('[data-action="copy-diagnosis-code"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row-testimonial');
+        var code = row.querySelector('code').textContent;
+        try {
+          navigator.clipboard && navigator.clipboard.writeText(code);
+          btn.textContent = 'Skopiowano ✓';
+          setTimeout(function () { btn.textContent = 'Kopiuj kod'; }, 1500);
+        } catch (e) {}
+      });
+    });
+
+    container.querySelectorAll('[data-field="active"]').forEach(function (checkbox) {
+      checkbox.addEventListener('change', function () {
+        var row = checkbox.closest('.admin-row-testimonial');
+        var id = Number(row.getAttribute('data-row-id'));
+        client.from('diagnosis_codes').update({ active: checkbox.checked }).eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd zapisu: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, checkbox.checked ? 'Kod aktywowany.' : 'Kod dezaktywowany.', 'success');
+        });
+      });
+    });
+
+    container.querySelectorAll('[data-action="delete-diagnosis-code"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row-testimonial');
+        var id = Number(row.getAttribute('data-row-id'));
+        client.from('diagnosis_codes').delete().eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd usuwania: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Usunięto kod.', 'success');
+          loadDiagnosisCodesAdmin();
+        });
+      });
+    });
+  }
+
+  function randomDiagnosisCode() {
+    var chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // bez znakow latwych do pomylenia: 0/O, 1/I/L
+    var out = '';
+    for (var i = 0; i < 8; i++) out += chars.charAt(Math.floor(Math.random() * chars.length));
+    return out;
+  }
+
+  var generateDiagnosisCodeBtn = document.getElementById('generate-diagnosis-code');
+  if (generateDiagnosisCodeBtn) {
+    generateDiagnosisCodeBtn.addEventListener('click', function () {
+      var input = document.getElementById('new-diagnosis-code');
+      if (input) input.value = randomDiagnosisCode();
+    });
+  }
+
+  var addDiagnosisCodeBtn = document.querySelector('[data-action="add-diagnosis-code"]');
+  if (addDiagnosisCodeBtn) {
+    addDiagnosisCodeBtn.addEventListener('click', function () {
+      var nameInput = document.getElementById('new-diagnosis-name');
+      var codeInput = document.getElementById('new-diagnosis-code');
+      var code = (codeInput.value || '').trim() || randomDiagnosisCode();
+      var payload = { student_name: (nameInput.value || '').trim(), code: code, active: true };
+      client.from('diagnosis_codes').insert(payload).then(function (res) {
+        if (res.error) { showMessage(globalMessage, 'Błąd dodawania (sprawdź, czy taki kod już nie istnieje): ' + res.error.message, 'error'); return; }
+        nameInput.value = '';
+        codeInput.value = '';
+        showMessage(globalMessage, 'Dodano kod dostępu.', 'success');
+        loadDiagnosisCodesAdmin();
+      });
+    });
+  }
+
+  // ---------- DIAGNOZA POGŁĘBIONA: wyniki ----------
+
+  function loadDiagnosisResultsAdmin() {
+    client.from('diagnosis_results').select('*').order('created_at', { ascending: false }).then(function (res) {
+      if (res.error) { showMessage(globalMessage, 'Błąd wczytywania wyników: ' + res.error.message, 'error'); return; }
+      renderDiagnosisResultsAdmin(res.data);
+    });
+  }
+
+  function renderDiagnosisResultsAdmin(rows) {
+    var container = document.querySelector('[data-admin-diagnosis-results]');
+    if (!container) return;
+    container.innerHTML = rows.map(function (r) {
+      var levels = r.levels || {};
+      var typeLabel = r.test_type === 'biznesowy' ? 'Test biznesowy' : 'Test ogólny';
+      var levelsLine = [
+        'Gramatyka: ' + (levels.grammar || '—'),
+        'Słownictwo: ' + (levels.vocabulary || '—'),
+        'Czytanie: ' + (levels.reading || '—'),
+        'Słuchanie: ' + (levels.listening || '—'),
+        'Mówienie: ' + (levels.speaking || '—')
+      ].join(' · ');
+      return (
+        '<details class="diag-lvl" data-row-id="' + r.id + '">' +
+        '<summary><span class="text-strong">' + escapeHtml(r.student_name || 'Kursant') + '</span> — ' + escapeHtml(typeLabel) +
+        ' <span class="text-muted" style="font-size:12px;">(' + new Date(r.created_at).toLocaleString('pl-PL') + ')</span></summary>' +
+        '<div style="padding:0 16px 16px;">' +
+        '<p class="text-muted" style="font-size:12.5px; margin-bottom:10px;">' + escapeHtml(levelsLine) + '</p>' +
+        '<textarea readonly rows="10" style="font-size:12.5px;">' + escapeHtml(r.report_text || '') + '</textarea>' +
+        '<button type="button" class="btn btn-danger btn-xs" style="margin-top:10px;" data-action="delete-diagnosis-result">Usuń wynik</button>' +
+        '</div>' +
+        '</details>'
+      );
+    }).join('') || '<p class="text-muted" style="font-size:13px;">Brak zapisanych wyników.</p>';
+
+    container.querySelectorAll('[data-action="delete-diagnosis-result"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var details = btn.closest('details');
+        var id = Number(details.getAttribute('data-row-id'));
+        client.from('diagnosis_results').delete().eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd usuwania: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Usunięto wynik.', 'success');
+          loadDiagnosisResultsAdmin();
+        });
       });
     });
   }

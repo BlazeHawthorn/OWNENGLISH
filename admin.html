@@ -388,6 +388,25 @@
       </div>
     </section>
 
+    <!-- DIAGNOZA POGŁĘBIONA -->
+    <section class="card" style="margin-bottom:32px;">
+      <h2 class="h2-sm" style="margin-bottom:6px;">Diagnoza pogłębiona — kody dostępu i wyniki</h2>
+      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Osobna, ukryta podstrona (<code>diagnoza.html</code> — nie ma jej w żadnym menu) z dwoma dłuższymi testami diagnostycznymi (ogólnym i biznesowym). Dostęp mają wyłącznie kursanci, którym wygenerujesz tu indywidualny kod — wyślij im go razem z linkiem do <code>diagnoza.html</code>. Kod nie jest jednorazowy (kursant może wrócić na stronę albo zrobić oba testy), dopóki go nie wyłączysz przełącznikiem „aktywny”.</p>
+
+      <h3 class="text-strong" style="font-size:14.5px; margin:16px 0 10px;">Kody dostępu</h3>
+      <div data-admin-diagnosis-codes></div>
+      <div class="admin-add-row">
+        <input type="text" id="new-diagnosis-name" placeholder="Imię i nazwisko kursanta">
+        <input type="text" id="new-diagnosis-code" placeholder="Kod dostępu">
+        <button type="button" class="btn btn-outline btn-sm" id="generate-diagnosis-code">Wylosuj kod</button>
+        <button type="button" class="btn btn-primary btn-sm" data-action="add-diagnosis-code">+ Dodaj kod</button>
+      </div>
+
+      <h3 class="text-strong" style="font-size:14.5px; margin:28px 0 10px;">Wyniki diagnoz</h3>
+      <p class="text-muted" style="font-size:12.5px; margin-bottom:8px;">Wyniki trafiają tu automatycznie, gdy kursant skończy test.</p>
+      <div data-admin-diagnosis-results></div>
+    </section>
+
     <!-- DANE KONTAKTOWE -->
     <section class="card" style="margin-bottom:32px;">
       <h2 class="h2-sm" style="margin-bottom:6px;">Dane kontaktowe</h2>

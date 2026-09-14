@@ -465,6 +465,41 @@
   color: var(--color-copyright);
 }
 
+/* ---- Baner informacyjny o cookies ---- */
+.cookie-banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  background: var(--color-ink);
+  color: #FFFFFF;
+  padding: 16px 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.cookie-banner p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 640px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.cookie-banner a {
+  color: #FFFFFF;
+  text-decoration: underline;
+}
+
+.cookie-banner button {
+  flex-shrink: 0;
+}
+
 /* --- Pasek USA (nad nagłówkiem) --- */
 
 .usa-topbar {
@@ -1354,4 +1389,186 @@
 [data-tutors-list] .photo-frame {
   border-radius: 50%;
   overflow: hidden;
+}
+
+/* ==========================================================================
+   DIAGNOZA POGŁĘBIONA — silnik testu (diagnoza.html, js/diagnoza-engine.js)
+   Klasy z przedrostkiem "diag-" są unikalne dla tego narzędzia, żeby nie
+   kolidowały z resztą systemu — reszta wyglądu (.card, .btn, .field, .eyebrow,
+   .admin-message itd.) celowo korzysta z istniejących klas strony, żeby ta
+   podstrona wyglądała spójnie z resztą serwisu.
+   ========================================================================== */
+
+.diag-ladder {
+  display: flex;
+  gap: 5px;
+}
+
+.diag-rung {
+  flex: 1;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--color-border);
+}
+
+.diag-rung.done {
+  background: var(--lvl-color, var(--color-accent));
+}
+
+.diag-rung.current {
+  background: var(--lvl-color, var(--color-accent));
+  opacity: 0.55;
+}
+
+.diag-ladder-labels {
+  display: flex;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--color-ink-soft);
+  margin-top: 4px;
+}
+
+.diag-ladder-labels span {
+  flex: 1;
+  text-align: center;
+}
+
+.diag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 100px;
+  color: #fff;
+}
+
+.diag-opt {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 13px 16px;
+  margin-bottom: 9px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--color-ink);
+  font-size: 15.5px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.diag-opt:hover {
+  border-color: var(--color-accent);
+}
+
+.diag-opt.selected {
+  border-color: var(--color-accent);
+  background: var(--color-accent-tint);
+}
+
+.diag-opt.idk {
+  border-style: dashed;
+  color: var(--color-ink-soft);
+  font-style: italic;
+}
+
+.diag-opt.idk.selected {
+  border-style: dashed;
+  background: var(--color-border);
+  color: var(--color-ink);
+}
+
+.diag-passage {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 18px 20px;
+  font-size: 15.5px;
+  margin-bottom: 6px;
+  line-height: 1.6;
+}
+
+.diag-qwrap {
+  border-top: 1px dashed var(--color-border);
+  padding-top: 16px;
+  margin-top: 16px;
+}
+
+.diag-qwrap:first-of-type {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.diag-skill-row {
+  display: grid;
+  grid-template-columns: 130px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.diag-skill-row:last-child {
+  border-bottom: none;
+}
+
+.diag-skill-track {
+  height: 9px;
+  border-radius: 5px;
+  background: var(--color-border);
+  position: relative;
+}
+
+.diag-skill-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 5px;
+}
+
+.diag-lvl {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.diag-lvl summary {
+  padding: 11px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  list-style: none;
+}
+
+.diag-lvl summary::-webkit-details-marker {
+  display: none;
+}
+
+.diag-item-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 16px;
+  font-size: 14px;
+  border-top: 1px solid var(--color-border);
+}
+
+.diag-status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+  margin-top: 5px;
+}
+
+@media (max-width: 480px) {
+  .diag-skill-row {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
 }
