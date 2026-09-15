@@ -70,6 +70,134 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   loadWordOfDay();
 
+  // ---------- CYTAT MOTYWUJĄCY ----------
+  // Gotowa lista sprawdzonych, prawdziwych cytatów pisarzy, poetów i osób
+  // związanych ze światem literatury — o nauce, czytaniu i języku. Rotacja
+  // dzienna działa dokładnie tak samo jak karta "Słowo na dziś" (ten sam
+  // dzień = ten sam cytat dla każdego, lista zapętla się od początku, gdy
+  // się skończy) — nie wymaga żadnej tabeli w bazie danych.
+  var MOTIVATIONAL_QUOTES = [
+    { text: 'Kto nie zna języków obcych, nie wie nic o własnym.', author: 'Johann Wolfgang von Goethe' },
+    { text: 'Gdy raz nauczysz się czytać, będziesz już na zawsze wolny.', author: 'Frederick Douglass' },
+    { text: 'Wiedza jest bezwartościowa, dopóki nie wcielisz jej w życie.', author: 'Anton Czechow' },
+    { text: 'Język jest mapą kultury. Mówi, skąd przybyli jej ludzie i dokąd zmierzają.', author: 'Rita Mae Brown' },
+    { text: 'Język jest krwią duszy, w której rodzą się i rosną myśli.', author: 'Oliver Wendell Holmes' },
+    { text: 'Żaden przyjaciel nie jest tak wierny jak książka.', author: 'Ernest Hemingway' },
+    { text: 'Czytelnik przeżywa tysiąc żyć, zanim umrze. Ten, kto nigdy nie czyta, przeżywa tylko jedno.', author: 'George R.R. Martin' },
+    { text: 'Rób, co możesz, dopóki nie wiesz lepiej. Gdy już wiesz lepiej — rób lepiej.', author: 'Maya Angelou' },
+    { text: 'Nigdy nie jest się za starym, by wyznaczyć sobie nowy cel albo zamarzyć na nowo.', author: 'C.S. Lewis' },
+    { text: 'Doświadczenie to imię, jakie każdy nadaje swoim błędom.', author: 'Oscar Wilde' },
+    { text: 'Dwoma najpotężniejszymi wojownikami są cierpliwość i czas.', author: 'Lew Tołstoj' },
+    { text: 'Osądzaj człowieka po jego pytaniach, a nie po odpowiedziach.', author: 'Wolter' },
+    { text: 'Znajomość języków jest bramą do mądrości.', author: 'Roger Bacon' },
+    { text: 'Mówić danym językiem — to przyjąć cały świat, całą kulturę.', author: 'Frantz Fanon' },
+    { text: 'Im więcej czytasz, tym więcej wiesz. Im więcej się uczysz, tym dalej zajdziesz.', author: 'Dr. Seuss' },
+    { text: 'Słowo „nie wiem” jest małe, ale lata na mocnych skrzydłach.', author: 'Wisława Szymborska' },
+    { text: 'Człowiek, który nie czyta, nie ma żadnej przewagi nad tym, kto czytać nie potrafi.', author: 'Mark Twain' },
+    { text: 'Zawsze wyobrażałem sobie raj jako rodzaj biblioteki.', author: 'Jorge Luis Borges' }
+  ];
+
+  function loadDailyQuote() {
+    var textEl = document.getElementById('panel-quote-text');
+    var authorEl = document.getElementById('panel-quote-author');
+    if (!textEl || !authorEl) return;
+    var epochDay = Math.floor(Date.now() / 86400000);
+    var q = MOTIVATIONAL_QUOTES[epochDay % MOTIVATIONAL_QUOTES.length];
+    textEl.textContent = '„' + q.text + '”';
+    authorEl.textContent = q.author;
+  }
+  loadDailyQuote();
+
+  // ---------- QUIZ DNIA (czasy i konstrukcje gramatyczne) ----------
+  // Stała baza 30 pytań (bez bazy danych) — rotacja dzienna tym samym
+  // mechanizmem co "Słowo na dziś" i cytat: ten sam dzień = to samo pytanie
+  // dla każdego, po 30 dniach lista zaczyna się od nowa. Odpowiedź od razu
+  // pokazuje wynik: błędnie wybrana odpowiedź podświetla się na czerwono,
+  // a poprawna — na zielono, równocześnie.
+  var GRAMMAR_QUIZ = [
+    { sentence: 'She goes to the gym every morning before work.', options: ['Present Simple', 'Present Continuous', 'Present Perfect', 'Past Simple'], correctIndex: 0, explanation: 'Czynność powtarzalna, rutynowa — sygnał: „every morning”.' },
+    { sentence: 'I am currently reading a fascinating book about ancient Rome.', options: ['Present Simple', 'Present Continuous', 'Present Perfect Continuous', 'Past Continuous'], correctIndex: 1, explanation: 'Czynność trwająca w tej chwili — słowo „currently” i końcówka „-ing”.' },
+    { sentence: 'They have already finished the project.', options: ['Past Simple', 'Present Perfect', 'Present Perfect Continuous', 'Past Perfect'], correctIndex: 1, explanation: 'Czynność zakończona z widocznym skutkiem teraz — „already” + have/has + III forma.' },
+    { sentence: 'He has been working on this report since 9 a.m.', options: ['Present Perfect', 'Present Perfect Continuous', 'Past Continuous', 'Present Continuous'], correctIndex: 1, explanation: 'Podkreśla czas trwania czynności rozpoczętej w przeszłości i trwającej nadal — „since”.' },
+    { sentence: 'We visited Paris last summer.', options: ['Present Perfect', 'Past Simple', 'Past Continuous', 'Past Perfect'], correctIndex: 1, explanation: 'Zakończona czynność w konkretnym momencie przeszłości — „last summer”.' },
+    { sentence: 'I was cooking dinner when the phone rang.', options: ['Past Simple', 'Past Continuous', 'Past Perfect', 'Past Perfect Continuous'], correctIndex: 1, explanation: 'Czynność w trakcie trwania, przerwana inną czynnością — „when” + Past Simple.' },
+    { sentence: 'By the time we arrived, the movie had already started.', options: ['Past Simple', 'Past Continuous', 'Past Perfect', 'Present Perfect'], correctIndex: 2, explanation: 'Czynność wcześniejsza od innej czynności w przeszłości — „by the time”.' },
+    { sentence: 'She had been studying for three hours before she took a break.', options: ['Past Perfect', 'Past Perfect Continuous', 'Present Perfect Continuous', 'Past Continuous'], correctIndex: 1, explanation: 'Podkreśla czas trwania czynności, która trwała aż do innego momentu w przeszłości.' },
+    { sentence: 'I will call you as soon as I arrive.', options: ['Future Simple', 'Future Continuous', 'Future Perfect', 'Present Simple'], correctIndex: 0, explanation: 'Spontaniczna decyzja lub obietnica dotycząca przyszłości — „will”.' },
+    { sentence: 'This time next week, I will be lying on a beach.', options: ['Future Simple', 'Future Continuous', 'Future Perfect', 'Going to Future'], correctIndex: 1, explanation: 'Czynność w trakcie trwania w konkretnym momencie przyszłości.' },
+    { sentence: 'By next year, she will have graduated from university.', options: ['Future Simple', 'Future Continuous', 'Future Perfect', 'Future Perfect Continuous'], correctIndex: 2, explanation: 'Czynność zakończona przed określonym momentem w przyszłości — „by next year”.' },
+    { sentence: "I'm going to start my own business next year.", options: ['Future Simple', 'Going to Future', 'Present Continuous', 'Future Continuous'], correctIndex: 1, explanation: 'Wcześniej podjęty plan lub zamiar — „going to”.' },
+    { sentence: 'My train leaves at 6 p.m. tomorrow.', options: ['Present Simple (rozkład jazdy)', 'Present Continuous', 'Future Simple', 'Going to Future'], correctIndex: 0, explanation: 'Present Simple używany dla ustalonych rozkładów jazdy i planów instytucjonalnych.' },
+    { sentence: "I'm meeting my dentist on Friday.", options: ['Present Simple (rozkład jazdy)', 'Present Continuous (plan na przyszłość)', 'Future Simple', 'Going to Future'], correctIndex: 1, explanation: 'Present Continuous dla wcześniej umówionych planów z konkretnym terminem.' },
+    { sentence: 'If it rains, we will stay at home.', options: ['Zero Conditional', 'First Conditional', 'Second Conditional', 'Third Conditional'], correctIndex: 1, explanation: 'Realny warunek dotyczący przyszłości — If + Present Simple, will + bezokolicznik.' },
+    { sentence: 'If I had more money, I would travel the world.', options: ['First Conditional', 'Second Conditional', 'Third Conditional', 'Mixed Conditional'], correctIndex: 1, explanation: 'Nierealna, hipotetyczna sytuacja w teraźniejszości — If + Past Simple, would + bezokolicznik.' },
+    { sentence: 'If she had studied harder, she would have passed the exam.', options: ['First Conditional', 'Second Conditional', 'Third Conditional', 'Zero Conditional'], correctIndex: 2, explanation: 'Nierealna sytuacja w przeszłości — If + Past Perfect, would have + III forma.' },
+    { sentence: 'If you heat water to 100°C, it boils.', options: ['Zero Conditional', 'First Conditional', 'Second Conditional', 'Third Conditional'], correctIndex: 0, explanation: 'Ogólna prawda / fakt naukowy — If + Present Simple, Present Simple.' },
+    { sentence: 'The new bridge was built in 2015.', options: ['Active Voice', 'Present Passive', 'Past Passive', 'Present Perfect Passive'], correctIndex: 2, explanation: 'Strona bierna w czasie przeszłym — was/were + III forma, akcent na obiekt, nie wykonawcę.' },
+    { sentence: 'This product is manufactured in Germany.', options: ['Active Voice', 'Present Simple Passive', 'Past Passive', 'Present Continuous Passive'], correctIndex: 1, explanation: 'Strona bierna w czasie teraźniejszym prostym — is/are + III forma.' },
+    { sentence: 'She said that she was tired.', options: ['Direct Speech', 'Reported Speech', 'Present Perfect', 'Past Continuous'], correctIndex: 1, explanation: 'Mowa zależna — czas cofnięty o jeden stopień wstecz względem wypowiedzi oryginalnej.' },
+    { sentence: "He must have missed the bus — that's why he's late.", options: ['Modal wyrażający obowiązek', 'Modal wyrażający przypuszczenie (przeszłość)', 'Modal wyrażający umiejętność', 'Modal wyrażający pozwolenie'], correctIndex: 1, explanation: '„Must have” + III forma wyraża pewne przypuszczenie dotyczące przeszłości.' },
+    { sentence: 'I used to play the piano when I was a child.', options: ['Past Simple (nawyk)', 'Used to (nawyk w przeszłości)', 'Past Continuous', 'Present Perfect'], correctIndex: 1, explanation: '„Used to” opisuje nawyk lub stan z przeszłości, który już nie trwa.' },
+    { sentence: "I'm not used to waking up so early.", options: ['Used to (nawyk w przeszłości)', 'Be used to (przyzwyczajenie)', 'Get used to', 'Would (nawyk w przeszłości)'], correctIndex: 1, explanation: '„Be used to” + rzeczownik/gerund oznacza przyzwyczajenie do czegoś, nie nawyk z przeszłości.' },
+    { sentence: 'I enjoy learning new languages.', options: ['Czasownik + bezokolicznik', 'Czasownik + gerund (-ing)', 'Modal + bezokolicznik', 'Present Continuous'], correctIndex: 1, explanation: 'Czasownik „enjoy” wymaga po sobie formy -ing (gerund).' },
+    { sentence: 'She decided to move to another city.', options: ['Czasownik + gerund (-ing)', 'Czasownik + bezokolicznik', 'Modal + bezokolicznik', 'Present Perfect'], correctIndex: 1, explanation: 'Czasownik „decide” łączy się z bezokolicznikiem (to + verb).' },
+    { sentence: 'The book that I borrowed from the library is overdue.', options: ['Zdanie względne nieokreślające', 'Zdanie względne określające', 'Mowa zależna', 'Strona bierna'], correctIndex: 1, explanation: 'Zdanie względne określające — informacja niezbędna, by wiedzieć, o którą książkę chodzi.' },
+    { sentence: 'I had my car repaired last week.', options: ['Strona bierna', 'Konstrukcja przyczynowa (have something done)', 'Mowa zależna', 'Past Perfect'], correctIndex: 1, explanation: 'Konstrukcja przyczynowa — zlecamy komuś wykonanie czynności zamiast robić ją samemu.' },
+    { sentence: "You've been to Italy, haven't you?", options: ['Question tag', 'Mowa zależna', 'Strona bierna', 'Tryb warunkowy'], correctIndex: 0, explanation: 'Question tag — krótkie pytanie potwierdzające dołączone na końcu zdania.' },
+    { sentence: 'By the time she retires, she will have been teaching for 40 years.', options: ['Future Perfect', 'Future Perfect Continuous', 'Future Continuous', 'Past Perfect Continuous'], correctIndex: 1, explanation: 'Podkreśla długość trwania czynności, aż do punktu w przyszłości.' }
+  ];
+
+  function loadDailyQuiz() {
+    var sentenceEl = document.getElementById('quiz-sentence');
+    var optionsEl = document.getElementById('quiz-options');
+    var feedbackEl = document.getElementById('quiz-feedback');
+    if (!sentenceEl || !optionsEl || !feedbackEl) return;
+
+    var epochDay = Math.floor(Date.now() / 86400000);
+    var q = GRAMMAR_QUIZ[epochDay % GRAMMAR_QUIZ.length];
+    sentenceEl.textContent = '„' + q.sentence + '”';
+    optionsEl.innerHTML = '';
+    feedbackEl.style.display = 'none';
+    var answered = false;
+
+    q.options.forEach(function (opt, idx) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-outline btn-sm';
+      btn.style.width = '100%';
+      btn.style.textAlign = 'left';
+      btn.textContent = opt;
+      btn.addEventListener('click', function () {
+        if (answered) return;
+        answered = true;
+        var buttons = optionsEl.querySelectorAll('button');
+        for (var i = 0; i < buttons.length; i++) {
+          buttons[i].disabled = true;
+          if (i === q.correctIndex) {
+            buttons[i].style.background = '#DDF3E4';
+            buttons[i].style.borderColor = '#16A34A';
+            buttons[i].style.color = '#0F7D3A';
+          }
+        }
+        if (idx !== q.correctIndex) {
+          btn.style.background = '#FBEAEA';
+          btn.style.borderColor = '#B3261E';
+          btn.style.color = '#B3261E';
+        }
+        feedbackEl.style.display = 'block';
+        if (idx === q.correctIndex) {
+          feedbackEl.style.color = '#0F7D3A';
+          feedbackEl.textContent = 'Brawo, poprawna odpowiedź! ' + (q.explanation || '');
+        } else {
+          feedbackEl.style.color = '#B3261E';
+          feedbackEl.textContent = 'Niepoprawnie — poprawna odpowiedź to: ' + q.options[q.correctIndex] + '. ' + (q.explanation || '');
+        }
+      });
+      optionsEl.appendChild(btn);
+    });
+  }
+  loadDailyQuiz();
+
   function showGateError(msg) {
     gateError.textContent = msg;
     gateError.style.display = 'block';
