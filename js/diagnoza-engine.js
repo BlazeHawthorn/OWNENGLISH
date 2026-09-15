@@ -835,6 +835,7 @@ document.addEventListener('DOMContentLoaded', function () {
       card5.appendChild(row);
       var ta = el("textarea"); ta.rows = 8; ta.style.marginTop = "14px"; ta.readOnly = true; ta.value = reportText;
       card5.appendChild(ta);
+      card5.appendChild(el("p", "text-muted", "<small>Ten wynik zapisał się automatycznie — możesz go później znów zobaczyć (razem z innymi swoimi testami i nadchodzącymi zajęciami) w <a href=\"panel-kursanta.html\" class=\"btn-link\">panelu kursanta</a>, logując się tym samym kodem dostępu.</small>"));
       app.appendChild(card5);
     }
 
