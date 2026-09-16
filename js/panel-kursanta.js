@@ -29,6 +29,11 @@ document.addEventListener('DOMContentLoaded', function () {
   var progressNext = document.getElementById('panel-progress-next');
   var progressBar = document.getElementById('panel-progress-bar');
   var progressGaps = document.getElementById('panel-progress-gaps');
+  var avatarImg = document.getElementById('panel-avatar-img');
+  var avatarPlaceholder = document.getElementById('panel-avatar-placeholder');
+  var avatarEditBtn = document.getElementById('panel-avatar-edit');
+  var avatarInput = document.getElementById('panel-avatar-input');
+  var avatarFeedback = document.getElementById('panel-avatar-feedback');
 
   if (!gateScreen) return; // strona jeszcze nie ma tej struktury — nic do zrobienia
 
@@ -538,6 +543,96 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // ---------- AVATAR KURSANTA ----------
+  // Zdjęcie jest pomniejszane i przycinane do kwadratu W PRZEGLĄDARCE (canvas),
+  // a potem zapisywane jako "data URL" (funkcja update_student_avatar, patrz
+  // supabase-setup.sql sekcja 21) — bez osobnego magazynu plików w Supabase.
+  var AVATAR_TARGET_SIZE = 240; // px, bok kwadratu zapisywanego avatara
+  var AVATAR_MAX_FILE_BYTES = 15 * 1024 * 1024; // 15 MB — tylko wstępny odsiew, zanim zacznie się przetwarzanie
+
+  function renderAvatar(dataUrl) {
+    if (!avatarImg || !avatarPlaceholder) return;
+    if (dataUrl) {
+      avatarImg.src = dataUrl;
+      avatarImg.style.display = 'block';
+      avatarPlaceholder.style.display = 'none';
+    } else {
+      avatarImg.removeAttribute('src');
+      avatarImg.style.display = 'none';
+      avatarPlaceholder.style.display = 'flex';
+    }
+  }
+
+  function avatarFeedbackMsg(msg, isError) {
+    if (!avatarFeedback) return;
+    avatarFeedback.textContent = msg || '';
+    avatarFeedback.style.color = isError ? '#B3261E' : 'var(--color-accent-dark)';
+  }
+
+  // Przycina wczytany obrazek do kwadratu (środek) i skaluje do docelowego
+  // rozmiaru, niezależnie od proporcji oryginalnego zdjęcia.
+  function resizeImageToSquareDataUrl(img, size) {
+    var side = Math.min(img.naturalWidth || img.width, img.naturalHeight || img.height);
+    var sx = ((img.naturalWidth || img.width) - side) / 2;
+    var sy = ((img.naturalHeight || img.height) - side) / 2;
+    var canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+    return canvas.toDataURL('image/jpeg', 0.85);
+  }
+
+  if (avatarEditBtn && avatarInput) {
+    avatarEditBtn.addEventListener('click', function () {
+      if (!currentCode) return;
+      avatarInput.value = '';
+      avatarInput.click();
+    });
+
+    avatarInput.addEventListener('change', function () {
+      var file = avatarInput.files && avatarInput.files[0];
+      if (!file || !currentCode) return;
+
+      if (file.type.indexOf('image/') !== 0) {
+        avatarFeedbackMsg('Wybierz plik graficzny (JPG, PNG itp.).', true);
+        return;
+      }
+      if (file.size > AVATAR_MAX_FILE_BYTES) {
+        avatarFeedbackMsg('Ten plik jest za duży (maks. 15 MB). Wybierz mniejsze zdjęcie.', true);
+        return;
+      }
+
+      avatarFeedbackMsg('Wgrywam zdjęcie…', false);
+
+      var reader = new FileReader();
+      reader.onerror = function () { avatarFeedbackMsg('Nie udało się wczytać tego pliku. Spróbuj ponownie.', true); };
+      reader.onload = function () {
+        var img = new Image();
+        img.onerror = function () { avatarFeedbackMsg('To nie wygląda na poprawny plik graficzny.', true); };
+        img.onload = function () {
+          var dataUrl;
+          try {
+            dataUrl = resizeImageToSquareDataUrl(img, AVATAR_TARGET_SIZE);
+          } catch (e) {
+            avatarFeedbackMsg('Nie udało się przetworzyć zdjęcia. Spróbuj innego pliku.', true);
+            return;
+          }
+          client.rpc('update_student_avatar', { p_code: currentCode, p_avatar_data_url: dataUrl }).then(function (res) {
+            if (res.error) { avatarFeedbackMsg('Nie udało się zapisać zdjęcia. Spróbuj ponownie.', true); return; }
+            renderAvatar(dataUrl);
+            avatarFeedbackMsg('Zapisano ✓', false);
+            setTimeout(function () { avatarFeedbackMsg(''); }, 2500);
+          }).catch(function () {
+            avatarFeedbackMsg('Błąd połączenia. Spróbuj ponownie za chwilę.', true);
+          });
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   // ---------- TWÓJ POSTĘP (na podstawie najnowszego wyniku diagnozy) ----------
   var CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
@@ -624,6 +719,7 @@ document.addEventListener('DOMContentLoaded', function () {
       panelStudentName.textContent = row.student_name || 'Kursancie';
       renderStreak(row.streak_count);
       renderGoal(row.goal_text);
+      renderAvatar(row.avatar_data_url);
       renderLessons(row.lessons || []);
       renderResults(row.results || []);
       renderProgress(row.results || []);
@@ -646,6 +742,8 @@ document.addEventListener('DOMContentLoaded', function () {
       gateCode.value = '';
       if (streakEl) streakEl.style.display = 'none';
       if (progressCard) progressCard.style.display = 'none';
+      renderAvatar(null);
+      avatarFeedbackMsg('');
       panelScreen.style.display = 'none';
       gateScreen.style.display = 'block';
     });

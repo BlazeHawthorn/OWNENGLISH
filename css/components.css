@@ -1655,3 +1655,50 @@
 .letter-game-found .badge {
   text-transform: lowercase;
 }
+
+/* ---- Panel kursanta — avatar kursanta przy imieniu ---- */
+.panel-avatar-wrap {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+}
+
+.panel-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--color-border);
+  background: var(--color-accent-soft-bg);
+}
+
+.panel-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-accent-dark);
+}
+
+.panel-avatar-edit-btn {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 1px solid var(--color-border);
+  color: var(--color-ink-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  padding: 0;
+}
+
+.panel-avatar-edit-btn:hover {
+  color: var(--color-accent-dark);
+  border-color: var(--color-accent);
+}
