@@ -317,6 +317,7 @@
     loadFaqAdmin();
     loadWordsAdmin();
     loadQuotesAdmin();
+    loadLettersAdmin();
     loadSiteContentAdmin();
     loadPhotoAdmin();
     loadVideosAdmin();
@@ -1517,6 +1518,77 @@
         inputs.forEach(function (input) { input.value = ''; });
         showMessage(globalMessage, 'Dodano nowy cytat.', 'success');
         loadQuotesAdmin();
+      });
+    });
+  }
+
+  // ---------- GRA NA ROZGRZEWKĘ — literki dnia (letter_game_days) ----------
+
+  function loadLettersAdmin() {
+    client
+      .from('letter_game_days')
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .then(function (res) {
+        if (res.error) { showMessage(globalMessage, 'Błąd wczytywania liter: ' + res.error.message, 'error'); return; }
+        renderLettersAdmin(res.data);
+      });
+  }
+
+  function renderLettersAdmin(rows) {
+    var container = document.querySelector('[data-admin-letters]');
+    if (!container) return;
+    container.innerHTML = rows.map(function (r) {
+      return (
+        '<div class="admin-row-testimonial" data-row-id="' + r.id + '">' +
+        '<input type="text" value="' + escapeHtml(r.letters) + '" data-field="letters" placeholder="Litery (np. TEACHERS)" style="text-transform:uppercase;">' +
+        '<label class="admin-checkbox"><input type="checkbox" data-field="published"' + (r.published ? ' checked' : '') + '> opublikowane</label>' +
+        '<button type="button" class="btn btn-outline btn-xs" data-action="save-letters">Zapisz</button>' +
+        '<button type="button" class="btn btn-danger btn-xs" data-action="delete-letters">Usuń</button>' +
+        '</div>'
+      );
+    }).join('') || '<p class="text-muted" style="font-size:13px;">Brak zapisanych zestawów liter.</p>';
+
+    container.querySelectorAll('[data-action="save-letters"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row-testimonial');
+        var id = Number(row.getAttribute('data-row-id'));
+        var payload = {
+          letters: row.querySelector('[data-field="letters"]').value.trim().toUpperCase(),
+          published: row.querySelector('[data-field="published"]').checked
+        };
+        client.from('letter_game_days').update(payload).eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd zapisu: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Zapisano litery.', 'success');
+        });
+      });
+    });
+
+    container.querySelectorAll('[data-action="delete-letters"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row-testimonial');
+        var id = Number(row.getAttribute('data-row-id'));
+        client.from('letter_game_days').delete().eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd usuwania: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Usunięto litery.', 'success');
+          loadLettersAdmin();
+        });
+      });
+    });
+  }
+
+  var addLettersBtn = document.querySelector('[data-action="add-letters"]');
+  if (addLettersBtn) {
+    addLettersBtn.addEventListener('click', function () {
+      var inputs = document.querySelectorAll('[data-new-letters]');
+      var payload = { sort_order: 999, published: true };
+      inputs.forEach(function (input) { payload[input.getAttribute('data-field')] = input.value.trim().toUpperCase(); });
+      if (!payload.letters) { showMessage(globalMessage, 'Podaj litery.', 'error'); return; }
+      client.from('letter_game_days').insert(payload).then(function (res) {
+        if (res.error) { showMessage(globalMessage, 'Błąd dodawania: ' + res.error.message, 'error'); return; }
+        inputs.forEach(function (input) { input.value = ''; });
+        showMessage(globalMessage, 'Dodano nowy zestaw liter.', 'success');
+        loadLettersAdmin();
       });
     });
   }

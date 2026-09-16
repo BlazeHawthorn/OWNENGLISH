@@ -158,6 +158,22 @@
       <p id="quiz-feedback" style="font-size:13px; margin-top:14px; display:none; font-weight:600;"></p>
     </div>
 
+    <!-- ROZGRZEWKA PRZED ZAJĘCIAMI — GRA W LITERY -->
+    <div class="card" style="margin-bottom:24px;">
+      <h2 class="h2-sm" style="font-size:19px; margin-bottom:6px;">Rozgrzewka przed zajęciami — ułóż jak najwięcej słów</h2>
+      <p class="text-muted" style="font-size:13px; margin-bottom:14px;">Z liter poniżej ułóż tyle angielskich słów, ile zdążysz, czekając na start lekcji. Możesz próbować dowolną liczbę razy.</p>
+      <div id="letter-game-tiles" class="letter-game-tiles"></div>
+      <div class="row gap-sm" style="margin-top:16px; flex-wrap:wrap;">
+        <input type="text" id="letter-game-input" placeholder="Wpisz słowo…" autocomplete="off" style="flex:1; min-width:160px;">
+        <button type="button" id="letter-game-submit" class="btn btn-primary btn-sm">Dodaj słowo</button>
+      </div>
+      <p id="letter-game-feedback" class="text-muted" style="font-size:13px; margin-top:10px; min-height:18px;"></p>
+      <div style="margin-top:6px;">
+        <span class="text-strong" style="font-size:13.5px;">Znalezione słowa (<span id="letter-game-count">0</span>):</span>
+        <div id="letter-game-found" class="letter-game-found"></div>
+      </div>
+    </div>
+
     <div class="card" style="margin-bottom:24px;">
       <h2 class="h2-sm" style="font-size:19px; margin-bottom:10px;">Nadchodzące zajęcia</h2>
       <div id="panel-lessons"></div>
@@ -178,6 +194,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="js/supabase-config.js"></script>
+  <script src="js/word-game-dictionary.js"></script>
   <script src="js/panel-kursanta.js"></script>
 </body>
 </html>

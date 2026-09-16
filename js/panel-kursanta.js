@@ -232,6 +232,133 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   loadDailyQuiz();
 
+  // ---------- ROZGRZEWKA PRZED ZAJĘCIAMI — GRA "UŁÓŻ JAK NAJWIĘCEJ SŁÓW" ----------
+  // Litery dnia pochodzą z tabeli letter_game_days (ten sam mechanizm rotacji
+  // co "Słowo na dziś" i cytaty — numer dnia modulo liczba opublikowanych
+  // wierszy). Sprawdzanie, czy wpisane słowo istnieje naprawdę, odbywa się
+  // wyłącznie w przeglądarce, względem słownika w js/word-game-dictionary.js
+  // (musi być wczytany PRZED tym plikiem w panel-kursanta.html). W
+  // przeciwieństwie do quizu dnia, tu nie ma limitu jednej próby dziennie —
+  // kursant może wracać do tej samej karty i próbować dowolną liczbę razy,
+  // dopóki nie zmienią się litery dnia.
+  var FALLBACK_LETTER_SETS = ['TEACHERS', 'LANGUAGE', 'STUDENTS', 'GRAMMAR', 'LISTENING', 'VOCABULARY'];
+
+  function letterCounts(str) {
+    var counts = {};
+    (str || '').toLowerCase().split('').forEach(function (ch) {
+      counts[ch] = (counts[ch] || 0) + 1;
+    });
+    return counts;
+  }
+
+  function canFormWord(word, availableCounts) {
+    var need = letterCounts(word);
+    for (var ch in need) {
+      if (!need.hasOwnProperty(ch)) continue;
+      if ((availableCounts[ch] || 0) < need[ch]) return false;
+    }
+    return true;
+  }
+
+  function setupLetterGame(letters) {
+    var tilesEl = document.getElementById('letter-game-tiles');
+    var inputEl = document.getElementById('letter-game-input');
+    var submitBtn = document.getElementById('letter-game-submit');
+    var feedbackEl = document.getElementById('letter-game-feedback');
+    var foundEl = document.getElementById('letter-game-found');
+    var countEl = document.getElementById('letter-game-count');
+    if (!tilesEl || !inputEl || !submitBtn || !feedbackEl || !foundEl || !countEl) return;
+
+    var clean = (letters || '').toUpperCase().replace(/[^A-Z]/g, '');
+    if (!clean) return;
+    var available = letterCounts(clean);
+    var dictionary = null; // budowany raz, przy pierwszej próbie (Set dla szybkiego sprawdzania)
+    var found = [];
+
+    tilesEl.innerHTML = '';
+    clean.split('').forEach(function (ch) {
+      var tile = document.createElement('span');
+      tile.className = 'letter-game-tile';
+      tile.textContent = ch;
+      tilesEl.appendChild(tile);
+    });
+
+    function feedback(msg, isError) {
+      feedbackEl.textContent = msg;
+      feedbackEl.style.color = isError ? '#B3261E' : 'var(--color-accent-dark)';
+    }
+
+    function submitWord() {
+      var raw = (inputEl.value || '').trim();
+      if (!raw) { feedback('Wpisz jakieś słowo.', true); return; }
+      var word = raw.toLowerCase();
+
+      if (!/^[a-zA-Z]+$/.test(raw)) {
+        feedback('Używaj tylko liter angielskiego alfabetu (bez polskich znaków).', true);
+        return;
+      }
+      if (word.length < 2) {
+        feedback('Słowo musi mieć przynajmniej 2 litery.', true);
+        return;
+      }
+      if (found.indexOf(word) !== -1) {
+        feedback('To słowo już znalazłeś/aś — spróbuj inne.', true);
+        return;
+      }
+      if (!canFormWord(word, available)) {
+        feedback('Nie da się ułożyć tego słowa z dzisiejszych liter.', true);
+        return;
+      }
+      if (!dictionary) {
+        var list = (window.WORD_GAME_DICTIONARY || []);
+        dictionary = {};
+        list.forEach(function (w) { dictionary[w] = true; });
+      }
+      if (!dictionary[word]) {
+        feedback('Nie znaleźliśmy tego słowa w naszym słowniku — spróbuj inne.', true);
+        return;
+      }
+
+      found.push(word);
+      inputEl.value = '';
+      inputEl.focus();
+      countEl.textContent = String(found.length);
+      feedback('Świetnie! „' + word + '” się liczy.', false);
+      var chip = document.createElement('span');
+      chip.className = 'badge badge-tint';
+      chip.textContent = word;
+      foundEl.appendChild(chip);
+    }
+
+    submitBtn.addEventListener('click', submitWord);
+    inputEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); submitWord(); }
+    });
+  }
+
+  function loadLetterGame() {
+    if (!document.getElementById('letter-game-tiles')) return;
+    client
+      .from('letter_game_days')
+      .select('*')
+      .eq('published', true)
+      .order('sort_order', { ascending: true })
+      .then(function (res) {
+        var epochDay = Math.floor(Date.now() / 86400000);
+        if (res.error || !res.data || !res.data.length) {
+          setupLetterGame(FALLBACK_LETTER_SETS[epochDay % FALLBACK_LETTER_SETS.length]);
+          return;
+        }
+        var row = res.data[epochDay % res.data.length];
+        setupLetterGame(row.letters);
+      })
+      .catch(function () {
+        var epochDay = Math.floor(Date.now() / 86400000);
+        setupLetterGame(FALLBACK_LETTER_SETS[epochDay % FALLBACK_LETTER_SETS.length]);
+      });
+  }
+  loadLetterGame();
+
   function showGateError(msg) {
     gateError.textContent = msg;
     gateError.style.display = 'block';
