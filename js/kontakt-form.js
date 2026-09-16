@@ -8,7 +8,7 @@
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', function () {
-  var MAILTO_ADDRESS = 'kontakt@ownenglish.pl'; // TODO: podmień na docelowy adres e-mail OwnEnglish
+  var MAILTO_ADDRESS = 'hordykblazej@icloud.com';
 
   function wireForm(formId, subject, fields) {
     var form = document.getElementById(formId);
