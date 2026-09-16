@@ -567,6 +567,37 @@
   font-weight: 600;
 }
 
+/* --- Panorama klasy — baner testowy/mockup (patrz decyzje-projektowe.md) --- */
+
+.section-panorama-test {
+  width: 100%;
+  /* Proporcja dopasowana wprost do zdjęcia tak, żeby przy PEŁNEJ szerokości
+     zawsze pokazywał się dokładnie ten sam wycinek w pionie — i lektor,
+     i kursanci w pełnych głowach — niezależnie od szerokości ekranu.
+     (Stała wysokość w px, np. przez clamp(), dawała różne kadrowanie na
+     różnych szerokościach — stąd zmiana na aspect-ratio.) */
+  aspect-ratio: 1774 / 450;
+  max-height: 480px;
+  position: relative;
+  overflow: hidden;
+  line-height: 0;
+}
+
+.section-panorama-test img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* pionowo blisko góry zdjęcia, żeby mieściła się cała głowa lektora
+     I pełne głowy kursantów w tle, bez ucinania którejkolwiek strony */
+  object-position: center 23%;
+  display: block;
+}
+
+.section-panorama-test .photo-frame-badge {
+  top: 16px;
+  left: 16px;
+}
+
 /* --- Pasek zaufania (statystyki) --- */
 
 .trust-bar {
