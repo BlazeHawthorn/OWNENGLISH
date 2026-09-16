@@ -71,12 +71,16 @@ document.addEventListener('DOMContentLoaded', function () {
   loadWordOfDay();
 
   // ---------- CYTAT MOTYWUJĄCY ----------
-  // Gotowa lista sprawdzonych, prawdziwych cytatów pisarzy, poetów i osób
-  // związanych ze światem literatury — o nauce, czytaniu i języku. Rotacja
-  // dzienna działa dokładnie tak samo jak karta "Słowo na dziś" (ten sam
-  // dzień = ten sam cytat dla każdego, lista zapętla się od początku, gdy
-  // się skończy) — nie wymaga żadnej tabeli w bazie danych.
-  var MOTIVATIONAL_QUOTES = [
+  // Cytaty są teraz edytowalne z panelu administratora (sekcja "Cytaty
+  // motywujące", tabela motivational_quotes) — działa dokładnie tak samo
+  // jak karta "Słowo na dziś": rotacja dzienna po opublikowanych wierszach
+  // (ten sam dzień = ten sam cytat dla każdego, lista zapętla się od
+  // początku, gdy się skończy). Poniższa lista to WYŁĄCZNIE zapasowy zestaw
+  // na wypadek, gdyby tabela w bazie była jeszcze pusta (np. zanim
+  // zaktualizowany plik supabase-setup.sql zostanie uruchomiony) albo gdyby
+  // zapytanie się nie powiodło — wtedy panel i tak pokaże sensowny cytat
+  // zamiast pustego miejsca.
+  var FALLBACK_QUOTES = [
     { text: 'Kto nie zna języków obcych, nie wie nic o własnym.', author: 'Johann Wolfgang von Goethe' },
     { text: 'Gdy raz nauczysz się czytać, będziesz już na zawsze wolny.', author: 'Frederick Douglass' },
     { text: 'Wiedza jest bezwartościowa, dopóki nie wcielisz jej w życie.', author: 'Anton Czechow' },
@@ -97,14 +101,33 @@ document.addEventListener('DOMContentLoaded', function () {
     { text: 'Zawsze wyobrażałem sobie raj jako rodzaj biblioteki.', author: 'Jorge Luis Borges' }
   ];
 
+  function showQuote(textEl, authorEl, text, author) {
+    textEl.textContent = '„' + text + '”';
+    authorEl.textContent = author;
+  }
+
+  function showFallbackQuote(textEl, authorEl) {
+    var epochDay = Math.floor(Date.now() / 86400000);
+    var q = FALLBACK_QUOTES[epochDay % FALLBACK_QUOTES.length];
+    showQuote(textEl, authorEl, q.text, q.author);
+  }
+
   function loadDailyQuote() {
     var textEl = document.getElementById('panel-quote-text');
     var authorEl = document.getElementById('panel-quote-author');
     if (!textEl || !authorEl) return;
-    var epochDay = Math.floor(Date.now() / 86400000);
-    var q = MOTIVATIONAL_QUOTES[epochDay % MOTIVATIONAL_QUOTES.length];
-    textEl.textContent = '„' + q.text + '”';
-    authorEl.textContent = q.author;
+    client
+      .from('motivational_quotes')
+      .select('*')
+      .eq('published', true)
+      .order('sort_order', { ascending: true })
+      .then(function (res) {
+        if (res.error || !res.data || !res.data.length) { showFallbackQuote(textEl, authorEl); return; }
+        var epochDay = Math.floor(Date.now() / 86400000);
+        var q = res.data[epochDay % res.data.length];
+        showQuote(textEl, authorEl, q.quote_text, q.author);
+      })
+      .catch(function () { showFallbackQuote(textEl, authorEl); });
   }
   loadDailyQuote();
 

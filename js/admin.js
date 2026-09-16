@@ -316,6 +316,7 @@
     loadContactAdmin();
     loadFaqAdmin();
     loadWordsAdmin();
+    loadQuotesAdmin();
     loadSiteContentAdmin();
     loadPhotoAdmin();
     loadVideosAdmin();
@@ -1443,6 +1444,79 @@
         inputs.forEach(function (input) { input.value = ''; });
         showMessage(globalMessage, 'Dodano nowe słówko.', 'success');
         loadWordsAdmin();
+      });
+    });
+  }
+
+  // ---------- CYTATY MOTYWUJĄCE (motivational_quotes) ----------
+
+  function loadQuotesAdmin() {
+    client
+      .from('motivational_quotes')
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .then(function (res) {
+        if (res.error) { showMessage(globalMessage, 'Błąd wczytywania cytatów: ' + res.error.message, 'error'); return; }
+        renderQuotesAdmin(res.data);
+      });
+  }
+
+  function renderQuotesAdmin(rows) {
+    var container = document.querySelector('[data-admin-quotes]');
+    if (!container) return;
+    container.innerHTML = rows.map(function (q) {
+      return (
+        '<div class="admin-row-testimonial" data-row-id="' + q.id + '">' +
+        '<textarea data-field="quote_text" placeholder="Treść cytatu">' + escapeHtml(q.quote_text) + '</textarea>' +
+        '<input type="text" value="' + escapeHtml(q.author) + '" data-field="author" placeholder="Autor">' +
+        '<label class="admin-checkbox"><input type="checkbox" data-field="published"' + (q.published ? ' checked' : '') + '> opublikowane</label>' +
+        '<button type="button" class="btn btn-outline btn-xs" data-action="save-quote">Zapisz</button>' +
+        '<button type="button" class="btn btn-danger btn-xs" data-action="delete-quote">Usuń</button>' +
+        '</div>'
+      );
+    }).join('') || '<p class="text-muted" style="font-size:13px;">Brak zapisanych cytatów.</p>';
+
+    container.querySelectorAll('[data-action="save-quote"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row-testimonial');
+        var id = Number(row.getAttribute('data-row-id'));
+        var payload = {
+          quote_text: row.querySelector('[data-field="quote_text"]').value.trim(),
+          author: row.querySelector('[data-field="author"]').value.trim(),
+          published: row.querySelector('[data-field="published"]').checked
+        };
+        client.from('motivational_quotes').update(payload).eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd zapisu: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Zapisano cytat.', 'success');
+        });
+      });
+    });
+
+    container.querySelectorAll('[data-action="delete-quote"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row-testimonial');
+        var id = Number(row.getAttribute('data-row-id'));
+        client.from('motivational_quotes').delete().eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd usuwania: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Usunięto cytat.', 'success');
+          loadQuotesAdmin();
+        });
+      });
+    });
+  }
+
+  var addQuoteBtn = document.querySelector('[data-action="add-quote"]');
+  if (addQuoteBtn) {
+    addQuoteBtn.addEventListener('click', function () {
+      var inputs = document.querySelectorAll('[data-new-quote]');
+      var payload = { sort_order: 999, published: true };
+      inputs.forEach(function (input) { payload[input.getAttribute('data-field')] = input.value.trim(); });
+      if (!payload.quote_text || !payload.author) { showMessage(globalMessage, 'Podaj treść cytatu i autora.', 'error'); return; }
+      client.from('motivational_quotes').insert(payload).then(function (res) {
+        if (res.error) { showMessage(globalMessage, 'Błąd dodawania: ' + res.error.message, 'error'); return; }
+        inputs.forEach(function (input) { input.value = ''; });
+        showMessage(globalMessage, 'Dodano nowy cytat.', 'success');
+        loadQuotesAdmin();
       });
     });
   }
