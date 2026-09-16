@@ -371,11 +371,31 @@ document.addEventListener('DOMContentLoaded', function () {
     // ---------- LISTENING ----------
     function startListening() { state.listeningIdx = 0; state.listeningAnswers = {}; state.listeningScores = []; renderListeningIntro(); }
 
+    // Transkrypty dialogów zapisane są w formie "A: ... B: ... A: ...", żeby
+    // było wiadomo, kto mówi, gdy ktoś czyta skrypt (patrz niżej). Syntezator
+    // mowy nie powinien jednak czytać samych etykiet "A:"/"B:" na głos —
+    // dlatego przed przekazaniem tekstu do speechSynthesis usuwamy je tutaj.
+    function speechFriendlyText(transcript) {
+      return transcript.replace(/(^|\s)[A-Z]:\s*/g, "$1").replace(/\s+/g, " ").trim();
+    }
+
+    // Do wyświetlenia w podglądzie tekstu (awaryjny przycisk "Pokaż tekst
+    // nagrania") rozbijamy dialog na osobne linie, po jednej na wypowiedź —
+    // monologi (bez etykiet "A:"/"B:") zostają jednym akapitem bez zmian.
+    function transcriptToScriptHtml(transcript) {
+      var withBreaks = transcript.replace(/ (?=[A-Z]: )/g, "\n");
+      var lines = withBreaks.split("\n");
+      return lines.map(function (line) {
+        var m = line.match(/^([A-Z]):\s*(.*)$/);
+        return m ? ("<strong>" + m[1] + ":</strong> " + m[2]) : line;
+      }).join("<br>");
+    }
+
     function speak(text) {
       try {
         if (!window.speechSynthesis) return false;
         window.speechSynthesis.cancel();
-        var u = new SpeechSynthesisUtterance(text);
+        var u = new SpeechSynthesisUtterance(speechFriendlyText(text));
         u.lang = "en-US"; u.rate = 0.95;
         window.speechSynthesis.speak(u);
         return true;
@@ -403,6 +423,23 @@ document.addEventListener('DOMContentLoaded', function () {
       };
       row.appendChild(playBtn); row.appendChild(counter);
       card.appendChild(row);
+
+      // Awaryjny podgląd tekstu — na wypadek, gdyby głos syntezatora mowy w
+      // danej przeglądarce był zbyt słabej jakości, żeby dało się go zrozumieć.
+      // Domyślnie ukryty, żeby nie zachęcać do pomijania samego słuchania.
+      var scriptToggle = el("button", "btn btn-outline", "📄 Pokaż tekst nagrania"); scriptToggle.type = "button"; scriptToggle.style.marginTop = "14px";
+      var scriptBox = el("div", "diag-script-box", transcriptToScriptHtml(rec.transcript)); scriptBox.style.display = "none";
+      var scriptNote = el("p", "diag-script-note", "Użyj tylko, jeśli nagranie jest niesłyszalne albo niezrozumiałe (np. słaby głos syntezatora mowy w tej przeglądarce)."); scriptNote.style.display = "none";
+      scriptToggle.onclick = function () {
+        var showing = scriptBox.style.display !== "none";
+        scriptBox.style.display = showing ? "none" : "block";
+        scriptNote.style.display = showing ? "none" : "block";
+        scriptToggle.textContent = showing ? "📄 Pokaż tekst nagrania" : "📄 Ukryj tekst nagrania";
+      };
+      card.appendChild(scriptToggle);
+      card.appendChild(scriptNote);
+      card.appendChild(scriptBox);
+
       var next = el("button", "btn btn-primary", "Przejdź do pytań →"); next.type = "button"; next.style.marginTop = "16px";
       next.onclick = renderListeningQuestions;
       card.appendChild(next);
