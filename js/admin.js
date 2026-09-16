@@ -1946,18 +1946,33 @@
     if (!container) return;
     container.innerHTML = rows.map(function (c) {
       var statusLabel = c.used_at ? ('użyty ' + new Date(c.used_at).toLocaleDateString('pl-PL')) : 'nieużyty';
+      var streakLabel = (c.streak_count && c.streak_count >= 2) ? (' · 🔥 ' + c.streak_count + ' dni z rzędu') : '';
       return (
         '<div class="admin-row-testimonial" data-row-id="' + c.id + '">' +
         '<div class="stack gap-xs" style="flex:1 1 220px;">' +
         '<span class="text-strong">' + escapeHtml(c.student_name || '(bez nazwiska)') + '</span>' +
-        '<span class="text-muted" style="font-size:12.5px;"><code>' + escapeHtml(c.code) + '</code> · ' + statusLabel + '</span>' +
+        '<span class="text-muted" style="font-size:12.5px;"><code>' + escapeHtml(c.code) + '</code> · ' + statusLabel + streakLabel + '</span>' +
+        '<input type="text" value="' + escapeHtml(c.goal_text || '') + '" data-field="goal_text" placeholder="Cel nauki kursanta (opcjonalnie)" style="margin-top:4px;">' +
         '</div>' +
         '<button type="button" class="btn btn-outline btn-xs" data-action="copy-diagnosis-code">Kopiuj kod</button>' +
+        '<button type="button" class="btn btn-outline btn-xs" data-action="save-diagnosis-goal">Zapisz cel</button>' +
         '<label class="admin-checkbox"><input type="checkbox" data-field="active"' + (c.active ? ' checked' : '') + '> aktywny</label>' +
         '<button type="button" class="btn btn-danger btn-xs" data-action="delete-diagnosis-code">Usuń</button>' +
         '</div>'
       );
     }).join('') || '<p class="text-muted" style="font-size:13px;">Brak wygenerowanych kodów.</p>';
+
+    container.querySelectorAll('[data-action="save-diagnosis-goal"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row-testimonial');
+        var id = Number(row.getAttribute('data-row-id'));
+        var goalText = row.querySelector('[data-field="goal_text"]').value.trim();
+        client.from('diagnosis_codes').update({ goal_text: goalText }).eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd zapisu celu: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Zapisano cel nauki.', 'success');
+        });
+      });
+    });
 
     container.querySelectorAll('[data-action="copy-diagnosis-code"]').forEach(function (btn) {
       btn.addEventListener('click', function () {

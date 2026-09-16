@@ -20,8 +20,19 @@ document.addEventListener('DOMContentLoaded', function () {
   var lessonsEl = document.getElementById('panel-lessons');
   var resultsEl = document.getElementById('panel-results');
   var logoutBtn = document.getElementById('panel-logout');
+  var streakEl = document.getElementById('panel-streak');
+  var goalInput = document.getElementById('panel-goal-input');
+  var goalSaveBtn = document.getElementById('panel-goal-save');
+  var goalSavedLabel = document.getElementById('panel-goal-saved');
+  var progressCard = document.getElementById('panel-progress-card');
+  var progressLabel = document.getElementById('panel-progress-label');
+  var progressNext = document.getElementById('panel-progress-next');
+  var progressBar = document.getElementById('panel-progress-bar');
+  var progressGaps = document.getElementById('panel-progress-gaps');
 
   if (!gateScreen) return; // strona jeszcze nie ma tej struktury — nic do zrobienia
+
+  var currentCode = ''; // kod aktualnie zalogowanego kursanta, potrzebny do zapisu celu nauki
 
   // ---------- ZAPAMIĘTANIE KODU DOSTĘPU W PRZEGLĄDARCE ----------
   // Żeby kursant nie musiał wpisywać kodu przy każdej wizycie. Kod trzymany
@@ -365,6 +376,101 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // ---------- SERIA DNI Z RZĘDU (streak) ----------
+  function renderStreak(streakCount) {
+    if (!streakEl) return;
+    if (!streakCount || streakCount < 2) { streakEl.style.display = 'none'; return; }
+    streakEl.textContent = '🔥 ' + streakCount + ' dni z rzędu';
+    streakEl.style.display = 'inline-block';
+  }
+
+  // ---------- CEL NAUKI ----------
+  function renderGoal(goalText) {
+    if (!goalInput) return;
+    goalInput.value = goalText || '';
+  }
+
+  if (goalSaveBtn) {
+    goalSaveBtn.addEventListener('click', function () {
+      if (!currentCode) return;
+      var text = (goalInput.value || '').trim();
+      goalSaveBtn.disabled = true;
+      goalSaveBtn.textContent = 'Zapisuję…';
+      client.rpc('update_student_goal', { p_code: currentCode, p_goal: text }).then(function (res) {
+        goalSaveBtn.disabled = false;
+        goalSaveBtn.textContent = 'Zapisz cel';
+        if (res.error) { return; }
+        if (goalSavedLabel) {
+          goalSavedLabel.style.display = 'inline';
+          setTimeout(function () { goalSavedLabel.style.display = 'none'; }, 2000);
+        }
+      }).catch(function () {
+        goalSaveBtn.disabled = false;
+        goalSaveBtn.textContent = 'Zapisz cel';
+      });
+    });
+  }
+
+  // ---------- TWÓJ POSTĘP (na podstawie najnowszego wyniku diagnozy) ----------
+  var CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+
+  function parseOverallLevel(reportText) {
+    var m = /POZIOM OGÓLNY[^:]*:\s*(.+)/.exec(reportText || '');
+    if (!m) return null;
+    return m[1].trim();
+  }
+
+  function parseGaps(reportText) {
+    var m = /BRAKI DO UZUPEŁNIENIA:\n([\s\S]*?)\n\nODPOWIEDŹ PISEMNA KURSANTA:/.exec(reportText || '');
+    if (!m) return [];
+    return m[1].split('\n')
+      .map(function (line) { return line.replace(/^-\s*/, '').replace(/\s*\([^)]*\)\s*$/, '').trim(); })
+      .filter(function (line) { return line.length > 0; });
+  }
+
+  function renderProgress(results) {
+    if (!progressCard) return;
+    var latest = results && results.length ? results[0] : null;
+    if (!latest || !latest.report_text) { progressCard.style.display = 'none'; return; }
+
+    var label = parseOverallLevel(latest.report_text);
+    if (!label || label.indexOf('niedostępny') === 0) { progressCard.style.display = 'none'; return; }
+
+    var pct, currentLabel, nextLabel;
+    if (label.indexOf('poniżej') === 0) {
+      currentLabel = label;
+      nextLabel = 'do A1';
+      pct = 10;
+    } else {
+      var m = /^([ABC][12])\.(\d)$/.exec(label);
+      if (!m) { progressCard.style.display = 'none'; return; }
+      var base = m[1];
+      var sub = Number(m[2]);
+      var idx = CEFR_LEVELS.indexOf(base);
+      currentLabel = 'Poziom ogólny: ' + base;
+      pct = Math.min(100, Math.round((sub / 3) * 100));
+      nextLabel = (idx >= 0 && idx < CEFR_LEVELS.length - 1) ? ('do ' + CEFR_LEVELS[idx + 1]) : 'najwyższy poziom!';
+    }
+
+    progressCard.style.display = 'block';
+    progressLabel.textContent = currentLabel;
+    progressNext.textContent = nextLabel;
+    progressBar.style.width = pct + '%';
+
+    var gaps = parseGaps(latest.report_text).slice(0, 6);
+    progressGaps.innerHTML = '';
+    if (gaps.length) {
+      progressGaps.appendChild(el('p', 'text-strong', 'Do przećwiczenia (z ostatniej diagnozy):'));
+      progressGaps.style.marginTop = '4px';
+      var list = el('div', 'stack gap-xs');
+      list.style.marginTop = '6px';
+      gaps.forEach(function (g) {
+        list.appendChild(el('span', 'text-muted', '• ' + escapeHtml(g)));
+      });
+      progressGaps.appendChild(list);
+    }
+  }
+
   function submitCode(opts) {
     var silent = !!(opts && opts.silent);
     var code = (gateCode.value || '').trim();
@@ -386,10 +492,14 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
       saveCode(code);
+      currentCode = code;
       var row = res.data[0];
       panelStudentName.textContent = row.student_name || 'Kursancie';
+      renderStreak(row.streak_count);
+      renderGoal(row.goal_text);
       renderLessons(row.lessons || []);
       renderResults(row.results || []);
+      renderProgress(row.results || []);
       gateScreen.style.display = 'none';
       panelScreen.style.display = 'block';
     }).catch(function () {
@@ -405,7 +515,10 @@ document.addEventListener('DOMContentLoaded', function () {
   if (logoutBtn) {
     logoutBtn.addEventListener('click', function () {
       clearSavedCode();
+      currentCode = '';
       gateCode.value = '';
+      if (streakEl) streakEl.style.display = 'none';
+      if (progressCard) progressCard.style.display = 'none';
       panelScreen.style.display = 'none';
       gateScreen.style.display = 'block';
     });

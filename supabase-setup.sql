@@ -906,6 +906,14 @@ create policy "Wyniki diagnozy: usuwanie tylko admin"
   using (is_admin());
 
 -- --------------------------------------------------------------------------
+-- 16b) KOLUMNY DLA CELU NAUKI I SERII DNI Z RZĘDU (dopisek do sekcji 16, patrz
+-- pełny opis w sekcji 19 niżej) — muszą powstać PRZED funkcją z sekcji 17,
+-- bo ta już z nich korzysta.
+alter table diagnosis_codes add column if not exists goal_text text not null default '';
+alter table diagnosis_codes add column if not exists last_visit_date date;
+alter table diagnosis_codes add column if not exists streak_count int not null default 0;
+
+-- --------------------------------------------------------------------------
 -- 17) PANEL KURSANTA — get_student_portal_data (dopisek do sekcji 16 wyżej)
 -- --------------------------------------------------------------------------
 -- Ten sam kod dostępu z sekcji 16 (diagnosis_codes) służy teraz też jako
@@ -923,22 +931,49 @@ create policy "Wyniki diagnozy: usuwanie tylko admin"
 -- pojawiały się w jego panelu, wpisuj jego imię i nazwisko TAK SAMO w obu
 -- miejscach (przy generowaniu kodu w panelu administratora i w grafiku
 -- zajęć lektora) — to jedyny warunek, żeby to zadziałało.
-create or replace function get_student_portal_data(p_code text)
-returns table(student_name text, results jsonb, lessons jsonb)
+--
+-- Funkcja zwraca też "goal_text" (cel nauki kursanta — patrz sekcja 19) i
+-- "streak_count" (seria dni z rzędu, aktualizowana automatycznie przy każdym
+-- logowaniu, patrz sekcja 19). UWAGA: jeśli kiedyś trzeba będzie jeszcze raz
+-- zmienić zestaw zwracanych kolumn tej funkcji, "create or replace" na to
+-- nie pozwoli (Postgres wymaga wtedy najpierw "drop function") — dlatego
+-- poniżej jest wprost "drop function if exists" przed każdym uruchomieniem,
+-- żeby ten plik zawsze dało się bezpiecznie uruchomić ponownie w całości.
+drop function if exists get_student_portal_data(text);
+
+create function get_student_portal_data(p_code text)
+returns table(student_name text, results jsonb, lessons jsonb, goal_text text, streak_count int)
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
+  v_id bigint;
   v_name text;
+  v_goal text;
+  v_last_visit date;
+  v_streak int;
 begin
-  select dc.student_name into v_name
+  select dc.id, dc.student_name, dc.goal_text, dc.last_visit_date, dc.streak_count
+    into v_id, v_name, v_goal, v_last_visit, v_streak
   from diagnosis_codes dc
   where upper(dc.code) = upper(p_code) and dc.active = true;
 
   if v_name is null then
     return;
   end if;
+
+  -- Aktualizacja serii dni z rzędu: ten sam dzień = bez zmian, wczoraj = +1,
+  -- większa przerwa (albo pierwsza wizyta) = zaczynamy liczyć od nowa (1).
+  if v_last_visit is null or v_last_visit < current_date - 1 then
+    v_streak := 1;
+  elsif v_last_visit = current_date - 1 then
+    v_streak := coalesce(v_streak, 0) + 1;
+  end if;
+
+  update diagnosis_codes
+  set last_visit_date = current_date, streak_count = v_streak
+  where id = v_id;
 
   return query
   select
@@ -960,7 +995,9 @@ begin
           and lesson_date >= current_date
           and status = 'planned'
       ) les
-    ), '[]'::jsonb);
+    ), '[]'::jsonb),
+    v_goal,
+    v_streak;
 end;
 $$;
 
@@ -1022,6 +1059,52 @@ select * from (values
   ('Zawsze wyobrażałem sobie raj jako rodzaj biblioteki.', 'Jorge Luis Borges', 18)
 ) as seed(quote_text, author, sort_order)
 where not exists (select 1 from motivational_quotes);
+
+-- --------------------------------------------------------------------------
+-- 19) CEL NAUKI I SERIA DNI Z RZĘDU (dopisek do sekcji 16/17 — panel kursanta)
+-- --------------------------------------------------------------------------
+-- Dwie kolejne rzeczy w panelu kursanta, dalej bez zakładania jakichkolwiek
+-- kont — cały czas ten sam kod dostępu z sekcji 16 (diagnosis_codes):
+--
+-- a) "Twój cel nauki" — jedno zdanie, które kursant może wpisać sam w swoim
+--    panelu (przycisk "Zapisz cel", funkcja update_student_goal() poniżej —
+--    zapisuje WYŁĄCZNIE pole celu, pod warunkiem podania aktywnego kodu, nic
+--    więcej z wiersza nie da się przez nią zmienić). Ty jako administrator
+--    możesz wpisać albo poprawić ten sam cel bezpośrednio w panelu (sekcja
+--    "Diagnoza pogłębiona" → pole "Cel nauki" przy danym kodzie) — np. gdy
+--    kursant powie Ci go telefonicznie albo osobiście.
+-- b) Seria dni z rzędu (streak) — licznik, ile dni z rzędu kursant zaglądał
+--    do swojego panelu. Aktualizowany automatycznie przy każdym logowaniu
+--    (funkcja get_student_portal_data() w sekcji 17 wyżej, która teraz zwraca
+--    też te dwie wartości) — nie wymaga żadnej dodatkowej akcji ani od
+--    Ciebie, ani od kursanta.
+--
+-- (Kolumny goal_text / last_visit_date / streak_count są już dodane w
+-- sekcji 16 wyżej, razem z resztą tabeli diagnosis_codes — musiały tam
+-- trafić, bo funkcja get_student_portal_data() z sekcji 17 już z nich
+-- korzysta, a kolumna musi istnieć, zanim powstanie funkcja, która się do
+-- niej odwołuje.)
+
+-- Osobna, wąska funkcja tylko do zapisu celu nauki przez samego kursanta —
+-- podanie aktywnego kodu pozwala zmienić WYŁĄCZNIE pole "goal_text" tego
+-- jednego wiersza, nic więcej (nie da się przez nią np. zmienić imienia,
+-- dezaktywować kodu ani zobaczyć czyichkolwiek danych). Długość celu jest
+-- obcinana do 300 znaków jako proste zabezpieczenie przed nadużyciem.
+create or replace function update_student_goal(p_code text, p_goal text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update diagnosis_codes
+  set goal_text = left(coalesce(p_goal, ''), 300)
+  where upper(code) = upper(p_code) and active = true;
+  return found;
+end;
+$$;
+
+grant execute on function update_student_goal(text, text) to anon, authenticated;
 
 -- ==========================================================================
 -- Koniec. Następne kroki:
