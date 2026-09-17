@@ -46,6 +46,7 @@
   var currentHourlyRate = 0; // stawka za godzinę administratora (do "Podsumowania miesiąca")
   var summaryMonthStart = null; // 'RRRR-MM-01' — miesiąc aktualnie pokazywany w podsumowaniu
   var latestMyScheduleRows = []; // ostatnio wczytane własne zajęcia administratora (do podsumowania)
+  var studentRatesMap = {}; // stawki indywidualne: klucz to lower(trim(imię i nazwisko)) -> stawka za godzinę
 
   function escapeHtml(str) {
     if (str === null || str === undefined) return '';
@@ -308,6 +309,7 @@
     loadTodayLessons();
     loadMySchedule();
     loadHourlyRate();
+    loadStudentRates();
     loadTutorsAdmin();
     loadScheduleAdmin();
     loadNavVisibility();
@@ -586,6 +588,12 @@
     });
   }
 
+  function rateForStudent(studentName) {
+    var key = (studentName || '').trim().toLowerCase();
+    if (key && studentRatesMap.hasOwnProperty(key)) return studentRatesMap[key];
+    return currentHourlyRate;
+  }
+
   function renderMonthlySummary() {
     var labelEl = document.getElementById('summary-month-label');
     var countEl = document.getElementById('summary-lesson-count');
@@ -600,12 +608,95 @@
     });
     var totalEarnings = relevant.reduce(function (sum, r) {
       var minutes = r.duration_minutes || 60;
-      return sum + (minutes / 60) * currentHourlyRate;
+      return sum + (minutes / 60) * rateForStudent(r.student_name);
     }, 0);
 
     labelEl.textContent = monthLabel(summaryMonthStart);
     countEl.textContent = String(relevant.length);
     earningsEl.textContent = totalEarnings.toFixed(2).replace('.', ',') + ' zł';
+  }
+
+  // ---------- STAWKI INDYWIDUALNE KURSANTÓW (student_rates) ----------
+
+  function loadStudentRates() {
+    client.from('student_rates').select('*').order('student_name', { ascending: true }).then(function (res) {
+      if (res.error) return;
+      studentRatesMap = {};
+      (res.data || []).forEach(function (r) {
+        var key = (r.student_name || '').trim().toLowerCase();
+        if (key) studentRatesMap[key] = Number(r.hourly_rate) || 0;
+      });
+      renderStudentRatesAdmin(res.data || []);
+      renderMonthlySummary();
+      renderMySchedule(latestMyScheduleRows);
+    });
+  }
+
+  function renderStudentRatesAdmin(rows) {
+    var container = document.querySelector('[data-admin-student-rates]');
+    if (!container) return;
+    container.innerHTML = rows.map(function (r) {
+      return (
+        '<div class="admin-row-testimonial" data-row-id="' + r.id + '">' +
+        '<input type="text" value="' + escapeHtml(r.student_name) + '" data-field="student_name" placeholder="Imię i nazwisko kursanta">' +
+        '<input type="number" value="' + escapeHtml(r.hourly_rate) + '" data-field="hourly_rate" min="0" step="0.01" placeholder="Stawka za godzinę (zł)">' +
+        '<button type="button" class="btn btn-outline btn-xs" data-action="save-student-rate">Zapisz</button>' +
+        '<button type="button" class="btn btn-danger btn-xs" data-action="delete-student-rate">Usuń</button>' +
+        '</div>'
+      );
+    }).join('') || '<p class="text-muted" style="font-size:13px;">Brak stawek indywidualnych — dla wszystkich kursantów liczy się stawka ogólna.</p>';
+
+    container.querySelectorAll('[data-action="save-student-rate"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row-testimonial');
+        var id = Number(row.getAttribute('data-row-id'));
+        var payload = {
+          student_name: row.querySelector('[data-field="student_name"]').value.trim(),
+          hourly_rate: Number(row.querySelector('[data-field="hourly_rate"]').value) || 0
+        };
+        if (!payload.student_name) { showMessage(globalMessage, 'Podaj imię i nazwisko kursanta.', 'error'); return; }
+        client.from('student_rates').update(payload).eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd zapisu: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Zapisano stawkę.', 'success');
+          loadStudentRates();
+        });
+      });
+    });
+
+    container.querySelectorAll('[data-action="delete-student-rate"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row-testimonial');
+        var id = Number(row.getAttribute('data-row-id'));
+        client.from('student_rates').delete().eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd usuwania: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Usunięto stawkę indywidualną.', 'success');
+          loadStudentRates();
+        });
+      });
+    });
+  }
+
+  var addStudentRateBtn = document.querySelector('[data-action="add-student-rate"]');
+  if (addStudentRateBtn) {
+    addStudentRateBtn.addEventListener('click', function () {
+      var inputs = document.querySelectorAll('[data-new-student-rate]');
+      var payload = {};
+      inputs.forEach(function (input) { payload[input.getAttribute('data-field')] = input.value.trim(); });
+      payload.hourly_rate = Number(payload.hourly_rate) || 0;
+      if (!payload.student_name) { showMessage(globalMessage, 'Podaj imię i nazwisko kursanta.', 'error'); return; }
+      client.from('student_rates').insert(payload).then(function (res) {
+        if (res.error) {
+          var msg = res.error.message && res.error.message.indexOf('duplicate') !== -1
+            ? 'Ten kursant ma już ustawioną stawkę indywidualną — zmień ją na liście powyżej zamiast dodawać drugi raz.'
+            : 'Błąd dodawania: ' + res.error.message;
+          showMessage(globalMessage, msg, 'error');
+          return;
+        }
+        inputs.forEach(function (input) { input.value = ''; });
+        showMessage(globalMessage, 'Dodano stawkę indywidualną.', 'success');
+        loadStudentRates();
+      });
+    });
   }
 
   var summaryPrevBtn = document.getElementById('summary-month-prev');
@@ -704,11 +795,15 @@
     var container = document.querySelector('[data-my-schedule]');
     if (!container) return;
     container.innerHTML = rows.map(function (r) {
+      var rateKey = (r.student_name || '').trim().toLowerCase();
+      var rateBadge = (rateKey && studentRatesMap.hasOwnProperty(rateKey))
+        ? ' <span class="badge badge-tint" style="padding:1px 8px; font-size:10.5px;" title="Stawka indywidualna">' + studentRatesMap[rateKey].toFixed(0) + ' zł/h</span>'
+        : '';
       return (
         '<div class="admin-row" data-row-id="' + r.id + '"' + (r.series_id ? ' data-series-id="' + r.series_id + '"' : '') + '>' +
         '<span style="min-width:110px;">' + escapeHtml(r.lesson_date) + (r.lesson_time ? ' ' + escapeHtml(r.lesson_time) : '') + '</span>' +
         '<span class="text-muted" style="min-width:50px; font-size:12px;">' + (r.duration_minutes || 60) + ' min</span>' +
-        '<span style="flex:1 1 140px;">' + escapeHtml(r.student_name) + '</span>' +
+        '<span style="flex:1 1 140px;">' + escapeHtml(r.student_name) + rateBadge + '</span>' +
         '<span class="text-muted" style="flex:1 1 160px; font-size:13px;">' + escapeHtml(r.notes) + '</span>' +
         lessonStatusSelectHtml(r.status) +
         '<button type="button" class="btn btn-danger btn-xs" data-action="delete-my-lesson">Usuń</button>' +
