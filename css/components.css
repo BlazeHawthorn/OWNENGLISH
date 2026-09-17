@@ -500,15 +500,15 @@
   flex-shrink: 0;
 }
 
-/* --- Pasek USA (nad nagłówkiem) --- */
+/* --- Pasek promocyjny (nad nagłówkiem) --- */
 
-.usa-topbar {
+.promo-topbar {
   width: 100%;
   background: var(--gradient-topbar);
   padding: 13px 0;
 }
 
-.usa-topbar .container {
+.promo-topbar .container {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -517,17 +517,15 @@
   text-align: center;
 }
 
-.usa-topbar span {
+.promo-topbar span {
   font-size: var(--fs-small);
   font-weight: 700;
   color: #FFFFFF;
   letter-spacing: 0.2px;
 }
 
-.usa-topbar svg {
+.promo-topbar svg {
   flex-shrink: 0;
-  border-radius: 3px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
 }
 
 /* --- Plakietka "słownikowa" (motyw angielskich słów kluczowych) --- */
