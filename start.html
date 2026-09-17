@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bezpłatna konsultacja online — OwnEnglish</title>
+<meta name="description" content="Wybierz termin bezpłatnej, 30-minutowej konsultacji online i porozmawiajmy o Twoim celu w nauce angielskiego. Zajmie mniej niż minutę.">
+
+<!-- Open Graph — podgląd tego linku wklejonego np. w komentarzu na Facebooku -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Bezpłatna konsultacja online — OwnEnglish">
+<meta property="og:description" content="Zacznij mówić po angielsku pewnie i swobodnie. Wybierz termin 30-minutowej rozmowy online — bez zobowiązań, zajmie mniej niż minutę.">
+<meta property="og:image" content="https://ownenglish.pl/img/og-start.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://ownenglish.pl/start.html">
+<meta name="twitter:card" content="summary_large_image">
+
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components.css">
+<style>
+  /* Strona celowo bez menu, stopki-sitemapy i innych "wyjść" — jeden cel: umówienie terminu. */
+  .start-header { display:flex; align-items:center; justify-content:space-between; height:76px; }
+  .start-hero { max-width:640px; margin:0 auto; text-align:center; }
+  .start-hero .eyebrow { justify-content:center; }
+  .start-trust { font-size:14px; color:var(--color-muted); margin-top:18px; }
+  .start-alt { text-align:center; font-size:14.5px; color:var(--color-muted); margin-top:28px; }
+  .start-alt a { color:var(--color-accent-dark); font-weight:600; }
+  @media (max-width: 640px) {
+    .start-hero h1 { font-size:30px !important; }
+  }
+  @media (max-width: 480px) {
+    .start-header .btn-link { display:none; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container start-header">
+      <a href="index.html" class="logo">
+        <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 10C8 7.79 9.79 6 12 6H28C30.21 6 32 7.79 32 10V22C32 24.21 30.21 26 28 26H16L9 32V26H12C9.79 26 8 24.21 8 22V10Z" stroke="#16A34A" stroke-width="2.4" stroke-linejoin="round"/>
+          <path d="M13.5 14.5C13.5 14.5 15.5 12.3 18 14.5C20.5 16.7 22.5 12.3 25 14.5" stroke="#16A34A" stroke-width="2.1" stroke-linecap="round"/>
+          <path d="M13.5 19.5H24.5" stroke="#16A34A" stroke-width="2.1" stroke-linecap="round"/>
+        </svg>
+        <span class="logo-text">OwnEnglish</span>
+      </a>
+      <a href="oferta.html" class="btn-link" style="font-size:14px;">Zobacz pełną ofertę →</a>
+    </div>
+  </header>
+
+  <!-- HERO — jeden cel, jedna decyzja -->
+  <div class="section-hero">
+    <div class="container stack gap-md start-hero" style="padding-top:56px; padding-bottom:8px;">
+      <span class="eyebrow" style="margin:0 auto;">💬 Bezpłatna konsultacja online</span>
+      <h1 style="font-size:40px;">Wybierz termin i porozmawiajmy o&nbsp;Twoim angielskim.</h1>
+      <p class="text-lead text-muted">30-minutowa rozmowa online o Twoim celu i poziomie — bez zobowiązań. Od razu zobaczysz, jak możemy pracować nad tym, żebyś zaczął mówić swobodnie i był naprawdę zrozumiany.</p>
+      <p class="start-trust">Kursy indywidualne dla dorosłych · zajęcia online · dopasowane do Twojego tempa</p>
+    </div>
+  </div>
+
+  <!-- KALENDARZ — od razu, bez przewijania po drugiej stronie -->
+  <section class="section" style="padding-top:24px;">
+    <div class="container" style="max-width:760px;">
+      <div class="calendly-inline-widget" data-url="https://calendly.com/hordykblazej/30min" style="min-width:280px; height:650px;"></div>
+
+      <p class="start-alt">
+        Wolisz najpierw napisać? <a href="mailto:kontakt@ownenglish.pl">kontakt@ownenglish.pl</a>
+      </p>
+    </div>
+  </section>
+
+  <footer class="site-footer" style="padding:32px 0;">
+    <div class="container footer-copyright" style="text-align:center;">© 2026 OwnEnglish · <a href="polityka-prywatnosci.html" class="btn-link">Polityka prywatności</a> · <a href="index.html" class="btn-link">Strona główna</a></div>
+  </footer>
+
+  <script src="js/cookie-banner.js" defer></script>
+  <script src="https://assets.calendly.com/assets/external/widget.js" async></script>
+</body>
+</html>
