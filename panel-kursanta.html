@@ -71,6 +71,15 @@
     </div>
     <p id="panel-avatar-feedback" class="text-muted" style="font-size:12.5px; margin-bottom:20px; min-height:16px;"></p>
 
+    <!-- ZAKŁADKI PANELU — osobno "Twój panel" i "Mój zeszyt", żeby nie robić
+         z tego jednego, długiego przewijania wszystkiego na raz. -->
+    <div class="panel-tabs" style="margin-bottom:24px;">
+      <button type="button" class="panel-tab is-active" data-panel-tab="overview">Twój panel</button>
+      <button type="button" class="panel-tab" data-panel-tab="notebook">Mój zeszyt</button>
+    </div>
+
+    <div id="panel-tab-overview">
+
     <!-- CEL NAUKI -->
     <div class="card" style="margin-bottom:24px;">
       <h2 class="h2-sm" style="font-size:19px; margin-bottom:6px;">Twój cel nauki</h2>
@@ -208,6 +217,53 @@
         <a href="diagnoza.html" class="btn btn-outline btn-sm">Zrób nowy test diagnostyczny →</a>
       </div>
     </div>
+
+    </div>
+    <!-- /panel-tab-overview -->
+
+    <!-- MÓJ ZESZYT -->
+    <div id="panel-tab-notebook" style="display:none;">
+      <div class="card" style="margin-bottom:24px;">
+        <div class="row space-between" style="align-items:flex-start; margin-bottom:6px; gap:12px;">
+          <h2 class="h2-sm" style="font-size:19px;">Mój zeszyt</h2>
+          <button type="button" id="notebook-export" class="btn btn-outline btn-sm" style="flex-shrink:0;">⭳ Eksportuj do PDF</button>
+        </div>
+        <p class="text-muted" style="font-size:13px; margin-bottom:16px;">Twoje własne słówka, błędy i notatki w jednym miejscu — rośnie razem z Tobą. Dodawaj tyle, ile chcesz, kiedy chcesz.</p>
+
+        <div class="notebook-tabs" id="notebook-filter-tabs">
+          <button type="button" class="notebook-tab is-active" data-notebook-filter="all">Wszystkie</button>
+          <button type="button" class="notebook-tab" data-notebook-filter="slowko">Słówka</button>
+          <button type="button" class="notebook-tab" data-notebook-filter="blad">Moje błędy</button>
+          <button type="button" class="notebook-tab" data-notebook-filter="zwrot">Zwroty</button>
+          <button type="button" class="notebook-tab" data-notebook-filter="notatka">Notatki</button>
+        </div>
+
+        <div id="notebook-entries"></div>
+
+        <div style="height:1px; background:var(--color-border); margin:20px 0;"></div>
+
+        <p class="text-strong" style="font-size:14px; margin-bottom:12px;">Dodaj nowy wpis</p>
+        <div class="row gap-sm" style="flex-wrap:wrap; margin-bottom:10px;">
+          <select id="notebook-new-type" style="flex:0 0 160px; padding:10px 12px; border-radius:8px; border:1px solid var(--color-border); font-size:14px;">
+            <option value="slowko">Słówko</option>
+            <option value="blad">Mój błąd</option>
+            <option value="zwrot">Zwrot</option>
+            <option value="notatka" selected>Notatka</option>
+          </select>
+          <input type="text" id="notebook-new-title" placeholder="Tytuł (np. samo słówko)" style="flex:1; min-width:180px;">
+        </div>
+        <div class="field" style="margin-bottom:10px;">
+          <textarea id="notebook-new-body" rows="2" style="min-height:auto;" placeholder="Treść / wyjaśnienie (opcjonalnie)"></textarea>
+        </div>
+        <div class="field" style="margin-bottom:14px;">
+          <input type="text" id="notebook-new-example" placeholder="Twój przykład zdania (opcjonalnie)">
+        </div>
+        <div id="notebook-add-error" class="admin-message is-error" style="display:none;"></div>
+        <button type="button" id="notebook-add-btn" class="btn btn-primary btn-sm">+ Dodaj do zeszytu</button>
+      </div>
+    </div>
+    <!-- /panel-tab-notebook -->
+
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>

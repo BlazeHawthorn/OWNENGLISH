@@ -364,6 +364,252 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   loadLetterGame();
 
+  // ---------- ZAKŁADKI PANELU ("Twój panel" / "Mój zeszyt") ----------
+  // Osobne zakładki zamiast doklejania kolejnej karty do jednego, długiego
+  // przewijania — kursant świadomie przechodzi do "Mój zeszyt", zamiast
+  // musieć przewijać przez wszystko, żeby tam trafić.
+  var panelTabButtons = document.querySelectorAll('[data-panel-tab]');
+  var panelTabPanes = {
+    overview: document.getElementById('panel-tab-overview'),
+    notebook: document.getElementById('panel-tab-notebook')
+  };
+
+  panelTabButtons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var target = btn.getAttribute('data-panel-tab');
+      panelTabButtons.forEach(function (b) { b.classList.toggle('is-active', b === btn); });
+      Object.keys(panelTabPanes).forEach(function (key) {
+        var pane = panelTabPanes[key];
+        if (pane) pane.style.display = (key === target) ? 'block' : 'none';
+      });
+      if (target === 'notebook' && currentCode) loadNotebookEntries();
+    });
+  });
+
+  // ---------- MÓJ ZESZYT ----------
+  // Rosnący w czasie, osobisty zeszyt kursanta: własne słówka, błędy, zwroty
+  // i notatki, zapisywane przez RPC (get/add/update/delete_notebook_entry —
+  // patrz supabase-setup.sql, sekcja 23), przypisane do jego kodu dostępu.
+  // Wpisy wczytują się dopiero przy pierwszym wejściu w tę zakładkę, a nie
+  // od razu przy logowaniu — nie ma sensu odpytywać bazy o coś, czego
+  // kursant może nigdy nie otworzyć.
+  var NOTEBOOK_TYPE_LABELS = { slowko: 'Słówko', blad: 'Mój błąd', zwrot: 'Zwrot', notatka: 'Notatka' };
+  var notebookEntriesEl = document.getElementById('notebook-entries');
+  var notebookFilterTabs = document.getElementById('notebook-filter-tabs');
+  var notebookAddBtn = document.getElementById('notebook-add-btn');
+  var notebookNewType = document.getElementById('notebook-new-type');
+  var notebookNewTitle = document.getElementById('notebook-new-title');
+  var notebookNewBody = document.getElementById('notebook-new-body');
+  var notebookNewExample = document.getElementById('notebook-new-example');
+  var notebookAddError = document.getElementById('notebook-add-error');
+  var notebookExportBtn = document.getElementById('notebook-export');
+
+  var notebookEntriesCache = [];
+  var notebookFilter = 'all';
+
+  function notebookAddErrorMsg(msg) {
+    if (!notebookAddError) return;
+    if (!msg) { notebookAddError.style.display = 'none'; return; }
+    notebookAddError.textContent = msg;
+    notebookAddError.style.display = 'block';
+  }
+
+  function startEditNotebookEntry(row, card) {
+    card.innerHTML = '';
+
+    var badge = el('span', 'badge badge-tint', escapeHtml(NOTEBOOK_TYPE_LABELS[row.entry_type] || 'Notatka'));
+    badge.style.cssText = 'padding:2px 9px; font-size:10.5px; margin-bottom:10px; display:inline-block;';
+    card.appendChild(badge);
+
+    var titleInput = document.createElement('input');
+    titleInput.type = 'text';
+    titleInput.value = row.title || '';
+    titleInput.style.cssText = 'width:100%; margin-bottom:8px;';
+
+    var bodyInput = document.createElement('textarea');
+    bodyInput.rows = 2;
+    bodyInput.style.cssText = 'width:100%; min-height:auto; margin-bottom:8px;';
+    bodyInput.value = row.body || '';
+
+    var exampleInput = document.createElement('input');
+    exampleInput.type = 'text';
+    exampleInput.value = row.example_sentence || '';
+    exampleInput.style.cssText = 'width:100%; margin-bottom:10px;';
+
+    var saveBtn = el('button', 'btn btn-primary btn-sm', 'Zapisz');
+    saveBtn.type = 'button';
+    var cancelBtn = el('button', 'btn-link', 'Anuluj');
+    cancelBtn.type = 'button';
+    cancelBtn.style.marginLeft = '12px';
+
+    saveBtn.addEventListener('click', function () {
+      saveBtn.disabled = true;
+      client.rpc('update_notebook_entry', {
+        p_code: currentCode,
+        p_id: row.id,
+        p_title: titleInput.value.trim(),
+        p_body: bodyInput.value.trim(),
+        p_example_sentence: exampleInput.value.trim()
+      }).then(function (res) {
+        saveBtn.disabled = false;
+        if (res.error) return;
+        loadNotebookEntries();
+      }).catch(function () { saveBtn.disabled = false; });
+    });
+    cancelBtn.addEventListener('click', function () { renderNotebookEntries(); });
+
+    card.appendChild(titleInput);
+    card.appendChild(bodyInput);
+    card.appendChild(exampleInput);
+    card.appendChild(saveBtn);
+    card.appendChild(cancelBtn);
+  }
+
+  function renderNotebookEntries() {
+    if (!notebookEntriesEl) return;
+    var rows = notebookFilter === 'all'
+      ? notebookEntriesCache
+      : notebookEntriesCache.filter(function (r) { return r.entry_type === notebookFilter; });
+
+    notebookEntriesEl.innerHTML = '';
+    if (!rows.length) {
+      notebookEntriesEl.appendChild(el('p', 'text-muted', 'Nie masz jeszcze żadnych wpisów w tej kategorii — dodaj pierwszy poniżej.'));
+      return;
+    }
+
+    rows.forEach(function (r) {
+      var card = el('div', 'notebook-entry');
+
+      var head = el('div', 'notebook-entry-head');
+      var left = el('div');
+      var badge = el('span', 'badge badge-tint', escapeHtml(NOTEBOOK_TYPE_LABELS[r.entry_type] || 'Notatka'));
+      badge.style.cssText = 'padding:2px 9px; font-size:10.5px; margin-bottom:6px; display:inline-block;';
+      left.appendChild(badge);
+      left.appendChild(el('div', 'notebook-entry-title', escapeHtml(r.title || '(bez tytułu)')));
+      head.appendChild(left);
+
+      var actions = el('div', 'notebook-entry-actions');
+      var editBtn = el('button', null, '✎');
+      editBtn.type = 'button';
+      editBtn.title = 'Edytuj';
+      editBtn.addEventListener('click', function () { startEditNotebookEntry(r, card); });
+      var delBtn = el('button', null, '🗑');
+      delBtn.type = 'button';
+      delBtn.title = 'Usuń';
+      delBtn.addEventListener('click', function () {
+        if (!window.confirm('Usunąć ten wpis z zeszytu? Tej operacji nie da się cofnąć.')) return;
+        client.rpc('delete_notebook_entry', { p_code: currentCode, p_id: r.id }).then(function (res) {
+          if (res.error) return;
+          loadNotebookEntries();
+        });
+      });
+      actions.appendChild(editBtn);
+      actions.appendChild(delBtn);
+      head.appendChild(actions);
+      card.appendChild(head);
+
+      if (r.body) card.appendChild(el('p', null, escapeHtml(r.body)));
+      if (r.example_sentence) {
+        card.appendChild(el('div', 'notebook-entry-example', '„' + escapeHtml(r.example_sentence) + '”'));
+      }
+      var dateStr = (r.created_at || '').slice(0, 10);
+      card.appendChild(el('div', 'notebook-entry-date', 'Dodano ' + escapeHtml(formatDate(dateStr))));
+
+      notebookEntriesEl.appendChild(card);
+    });
+  }
+
+  function loadNotebookEntries() {
+    if (!notebookEntriesEl || !currentCode) return;
+    client.rpc('get_notebook_entries', { p_code: currentCode }).then(function (res) {
+      if (res.error) return;
+      notebookEntriesCache = res.data || [];
+      renderNotebookEntries();
+    });
+  }
+
+  if (notebookFilterTabs) {
+    notebookFilterTabs.querySelectorAll('[data-notebook-filter]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        notebookFilter = btn.getAttribute('data-notebook-filter');
+        notebookFilterTabs.querySelectorAll('[data-notebook-filter]').forEach(function (b) {
+          b.classList.toggle('is-active', b === btn);
+        });
+        renderNotebookEntries();
+      });
+    });
+  }
+
+  if (notebookAddBtn) {
+    notebookAddBtn.addEventListener('click', function () {
+      if (!currentCode) return;
+      var title = (notebookNewTitle.value || '').trim();
+      var body = (notebookNewBody.value || '').trim();
+      var example = (notebookNewExample.value || '').trim();
+      var type = notebookNewType.value;
+      if (!title) { notebookAddErrorMsg('Wpisz tytuł wpisu (np. samo słówko).'); return; }
+      notebookAddErrorMsg('');
+      notebookAddBtn.disabled = true;
+      notebookAddBtn.textContent = 'Dodaję…';
+      client.rpc('add_notebook_entry', {
+        p_code: currentCode,
+        p_entry_type: type,
+        p_title: title,
+        p_body: body,
+        p_example_sentence: example
+      }).then(function (res) {
+        notebookAddBtn.disabled = false;
+        notebookAddBtn.textContent = '+ Dodaj do zeszytu';
+        if (res.error) { notebookAddErrorMsg('Nie udało się dodać wpisu. Spróbuj ponownie.'); return; }
+        notebookNewTitle.value = '';
+        notebookNewBody.value = '';
+        notebookNewExample.value = '';
+        loadNotebookEntries();
+      }).catch(function () {
+        notebookAddBtn.disabled = false;
+        notebookAddBtn.textContent = '+ Dodaj do zeszytu';
+        notebookAddErrorMsg('Błąd połączenia. Spróbuj ponownie za chwilę.');
+      });
+    });
+  }
+
+  if (notebookExportBtn) {
+    notebookExportBtn.addEventListener('click', function () {
+      if (!notebookEntriesCache.length) {
+        window.alert('Twój zeszyt jest jeszcze pusty — dodaj chociaż jeden wpis, żeby było co eksportować.');
+        return;
+      }
+      var win = window.open('', '_blank', 'width=760,height=960');
+      if (!win) {
+        window.alert('Przeglądarka zablokowała otwieranie nowego okna. Zezwól na wyskakujące okienka dla tej strony i spróbuj ponownie.');
+        return;
+      }
+      var rows = notebookEntriesCache.map(function (r) {
+        var example = r.example_sentence ? '<p style="margin:6px 0 0; font-style:italic; color:#0F7D3A;">„' + escapeHtml(r.example_sentence) + '”</p>' : '';
+        var body = r.body ? '<p style="margin:6px 0 0;">' + escapeHtml(r.body) + '</p>' : '';
+        return '<div style="margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid #E1ECE4;">' +
+          '<div style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#16A34A; font-weight:700;">' + escapeHtml(NOTEBOOK_TYPE_LABELS[r.entry_type] || 'Notatka') + '</div>' +
+          '<div style="font-size:16px; font-weight:700; margin-top:2px;">' + escapeHtml(r.title || '') + '</div>' +
+          body + example +
+          '</div>';
+      }).join('');
+      var html = '<!doctype html><html lang="pl"><head><meta charset="utf-8">' +
+        '<title>Mój zeszyt — OwnEnglish</title>' +
+        '<style>body{font-family:Arial,Helvetica,sans-serif;color:#1C1A18;padding:32px;max-width:680px;margin:0 auto;}' +
+        'h1{font-size:20px;margin:0 0 2px;}.muted{color:#6B655D;font-size:13px;margin-bottom:26px;}' +
+        '@media print{body{padding:0;}}</style></head><body>' +
+        '<h1>Mój zeszyt</h1>' +
+        '<div class="muted">Wyeksportowano ' + escapeHtml(formatDate(new Date().toISOString().slice(0, 10))) + '</div>' +
+        rows +
+        '</body></html>';
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(function () { win.print(); }, 300);
+    });
+  }
+
   function showGateError(msg) {
     gateError.textContent = msg;
     gateError.style.display = 'block';
