@@ -353,7 +353,7 @@
             '</div>' +
             '<label class="form-consent">' +
             '<input type="checkbox" data-webinar-consent required>' +
-            '<span>Zgadzam się na przetwarzanie moich danych (imię, e-mail) w celu zapisania mnie na ten webinar.</span>' +
+            '<span>Zgadzam się na przetwarzanie moich danych (imię, e-mail) w celu zapisania mnie na ten webinar — szczegóły w <a href="polityka-prywatnosci.html" target="_blank" rel="noopener">polityce prywatności</a>.</span>' +
             '</label>' +
             '<button type="submit" class="btn btn-primary btn-sm" style="width:fit-content;">Zapisz się</button>' +
             '<div class="admin-message" data-webinar-register-message style="display:none;"></div>' +
@@ -412,6 +412,7 @@
   var NAV_KEY_BY_HREF = {
     'oferta.html': 'oferta',
     'dla-firm.html': 'dla-firm',
+    'tlumaczenia.html': 'tlumaczenia',
     'cennik.html': 'cennik',
     'o-mnie.html': 'o-mnie',
     'zespol.html': 'zespol',

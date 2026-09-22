@@ -53,4 +53,17 @@ document.addEventListener('DOMContentLoaded', function () {
     { name: 'firma-osoby', label: 'Liczba osób' },
     { name: 'firma-wiadomosc', label: 'Czego potrzebujecie' }
   ]);
+
+  // Formularz na tlumaczenia.html — pola "tlum-kategoria" / "tlum-strony" /
+  // "tlum-cena" są ukrytymi polami wypełnianymi automatycznie przez
+  // js/tlumaczenia.js na podstawie ankiety i kalkulatora wyceny.
+  wireForm('form-tlumaczenie', 'Zapytanie o wycenę tłumaczenia — OwnEnglish', [
+    { name: 'tlum-imie', label: 'Imię i nazwisko' },
+    { name: 'tlum-email', label: 'E-mail' },
+    { name: 'tlum-termin', label: 'Oczekiwany termin realizacji' },
+    { name: 'tlum-wiadomosc', label: 'Dodatkowe informacje' },
+    { name: 'tlum-kategoria', label: 'Kategoria tłumaczenia' },
+    { name: 'tlum-strony', label: 'Liczba stron rozliczeniowych (z kalkulatora)' },
+    { name: 'tlum-cena', label: 'Szacowana cena (z kalkulatora)' }
+  ]);
 });

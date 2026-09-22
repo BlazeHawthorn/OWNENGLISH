@@ -314,6 +314,7 @@
     loadScheduleAdmin();
     loadNavVisibility();
     loadPricingAdmin();
+    loadTranslationPricingAdmin();
     loadTestimonialsAdmin();
     loadContactAdmin();
     loadFaqAdmin();
@@ -1282,6 +1283,60 @@
       });
     });
   });
+
+  // ---------- CENNIK TŁUMACZEŃ ----------
+  // Świadomie tylko edycja istniejących 4 kategorii (bez dodawania/usuwania)
+  // — strona "Tłumaczenia" ma na sztywno 4 karty cennika i 4 opcje w
+  // kalkulatorze dopasowane do tych konkretnych category_key; dodanie albo
+  // usunięcie wiersza tutaj nie miałoby gdzie się pokazać na stronie.
+
+  function loadTranslationPricingAdmin() {
+    var container = document.querySelector('[data-admin-translation-pricing]');
+    if (!container) return;
+    client
+      .from('translation_pricing')
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .then(function (res) {
+        if (res.error) {
+          showMessage(globalMessage, 'Błąd wczytywania cennika tłumaczeń: ' + res.error.message, 'error');
+          return;
+        }
+        renderTranslationPricingTable(res.data);
+      });
+  }
+
+  function renderTranslationPricingTable(rows) {
+    var container = document.querySelector('[data-admin-translation-pricing]');
+    if (!container) return;
+    container.innerHTML = (rows || []).map(function (r) {
+      return (
+        '<div class="admin-row" data-row-id="' + r.id + '" style="flex-wrap:wrap;">' +
+        '<strong style="flex:0 0 100%; margin-bottom:4px;">' + escapeHtml(r.category_label) + '</strong>' +
+        '<input type="text" value="' + escapeHtml(r.description) + '" data-field="description" placeholder="Opis kategorii" style="flex:1 1 260px;">' +
+        '<input type="number" value="' + escapeHtml(r.page_size_chars) + '" data-field="page_size_chars" min="1" step="1" placeholder="Znaków / strona" style="flex:0 0 140px;">' +
+        '<input type="number" value="' + escapeHtml(r.price_per_page) + '" data-field="price_per_page" min="0" step="0.01" placeholder="Cena / strona (zł)" style="flex:0 0 160px;">' +
+        '<button type="button" class="btn btn-outline btn-xs" data-action="save-translation-pricing">Zapisz</button>' +
+        '</div>'
+      );
+    }).join('') || '<p class="text-muted" style="font-size:13px;">Brak kategorii — uruchom aktualny plik supabase-setup.sql, żeby je dodać.</p>';
+
+    container.querySelectorAll('[data-action="save-translation-pricing"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.admin-row');
+        var id = Number(row.getAttribute('data-row-id'));
+        var payload = {
+          description: row.querySelector('[data-field="description"]').value.trim(),
+          page_size_chars: Number(row.querySelector('[data-field="page_size_chars"]').value) || 1800,
+          price_per_page: Number(row.querySelector('[data-field="price_per_page"]').value) || 0
+        };
+        client.from('translation_pricing').update(payload).eq('id', id).then(function (res) {
+          if (res.error) { showMessage(globalMessage, 'Błąd zapisu: ' + res.error.message, 'error'); return; }
+          showMessage(globalMessage, 'Zapisano cennik tłumaczeń.', 'success');
+        });
+      });
+    });
+  }
 
   // ---------- OPINIE ----------
 
