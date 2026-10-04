@@ -421,6 +421,14 @@
     'faq.html': 'faq'
   };
 
+  // Sekcje na stronie głównej, które nie są osobnymi podstronami (nie mają
+  // własnego linku w menu) — przełącznik w panelu nadal pozwala je schować,
+  // ale chowa tylko ten jeden fragment strony, nie całą stronę. Klucz to
+  // page_key z nav_visibility, wartość to id elementu do ukrycia.
+  var SECTION_ELEMENT_BY_KEY = {
+    'index-testimonials': 'section-testimonials'
+  };
+
   function applyNavVisibility() {
     client
       .from('nav_visibility')
@@ -449,6 +457,15 @@
           if (pageBody) pageBody.style.display = 'none';
           if (notice) notice.style.display = 'block';
         }
+
+        // 3) sekcje na stronie głównej niebędące osobnymi podstronami — chowa
+        // tylko ten jeden fragment (np. "Co mówią kursanci"), reszta strony
+        // głównej zostaje bez zmian
+        Object.keys(SECTION_ELEMENT_BY_KEY).forEach(function (key) {
+          if (hiddenKeys.indexOf(key) === -1) return;
+          var section = document.getElementById(SECTION_ELEMENT_BY_KEY[key]);
+          if (section) section.style.display = 'none';
+        });
       })
       .catch(function () { /* w razie błędu zostają wszystkie zakładki widoczne */ });
   }

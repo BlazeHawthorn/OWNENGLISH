@@ -279,7 +279,7 @@ select * from (values
   ('Czy mogę odwołać lub przełożyć zajęcia?', 'Tak — zajęcia można odwołać lub przełożyć z odpowiednim wyprzedzeniem. [Do uzupełnienia: dokładna liczba godzin/dni wyprzedzenia oraz zasady w przypadku spóźnionego odwołania.]', 4),
   ('Czy zajęcia odbywają się online, czy stacjonarnie?', 'Obie opcje są dostępne — wybierasz to, co jest dla Ciebie wygodniejsze. Zajęcia stacjonarne odbywają się [lokalizacja do potwierdzenia].', 5),
   ('Ile trwają zajęcia i jak często się odbywają?', 'Standardowo spotkania trwają [45–60 minut], zwykle [1–2 razy w tygodniu]. Dokładny harmonogram dopasowujemy indywidualnie na konsultacji.', 6),
-  ('Czy prowadzicie kursy dla firm?', 'Tak — przygotowujemy programy szkoleniowe dla zespołów, dopasowane do branży i celów biznesowych. Szczegóły znajdziesz na stronie „Dla firm”.', 7),
+  ('Czy prowadzicie kursy dla firm?', 'Tak — przygotowujemy programy szkoleniowe dla zespołów, dopasowane do branży i celów biznesowych. Szczegóły znajdziesz na stronie „Dla firm".', 7),
   ('Czy oferujecie kursy w innych językach niż angielski?', 'Obecnie skupiamy się na języku angielskim. Rozszerzenie oferty o kolejne języki rozważamy w przyszłości.', 8)
 ) as seed(question, answer, sort_order)
 where not exists (select 1 from faq_items);
@@ -338,10 +338,6 @@ create policy "Lekcje wideo: usuwanie tylko dla administratora"
 -- --------------------------------------------------------------------------
 -- 7) MAGAZYN PLIKÓW — bucket "media" (zdjęcia lektorów i inne grafiki)
 -- --------------------------------------------------------------------------
--- Publiczny bucket do przechowywania zdjęć. Administrator może wgrywać
--- dowolny plik. Lektor (patrz sekcja 8) może wgrywać WYŁĄCZNIE do swojego
--- własnego podfolderu "tutor-photos/<jego-ID-użytkownika>/..." — to
--- uniemożliwia lektorowi podmianę cudzego zdjęcia albo innych plików.
 insert into storage.buckets (id, name, public)
 values ('media', 'media', true)
 on conflict (id) do nothing;
@@ -389,25 +385,6 @@ create policy "Media: usuwanie tylko dla administratora"
 -- --------------------------------------------------------------------------
 -- 8) PROFILE LEKTORÓW — tutor_profiles (samodzielna rejestracja + moderacja)
 -- --------------------------------------------------------------------------
--- Każdy lektor zakłada konto samodzielnie (formularz "Zarejestruj się jako
--- lektor" na admin.html) i loguje się do tego samego panelu co Ty. Nowe
--- konto zawsze startuje ze statusem "pending" (oczekuje) — dopóki go nie
--- zatwierdzisz w panelu (sekcja "Lektorzy"), lektor widzi tylko komunikat
--- o oczekiwaniu i nie może niczego opublikować.
---
--- Po zatwierdzeniu konta lektor może edytować swój profil (imię, opis,
--- zdjęcie) — ale każda taka zmiana trafia do pól "pending_*" i czeka na
--- Twoją akceptację (sekcja "Lektorzy" → "Do zatwierdzenia"). Dopiero gdy
--- zatwierdzisz zmiany, trafiają one do pól widocznych publicznie
--- (name/bio/photo_url) i mogą pojawić się na stronie „Nasz zespół”
--- (dodatkowo musi być też włączony przełącznik "opublikowany").
---
--- Pilnuje tego wyzwalacz (trigger) niżej: jeśli zapisu dokonuje ktoś, kto
--- NIE jest administratorem, pola "oficjalne" (name/bio/photo_url/
--- account_status/published/rejection_reason) są automatycznie
--- przywracane do poprzedniej wartości — czyli lektor fizycznie nie jest
--- w stanie sam siebie zatwierdzić ani opublikować, nawet gdyby spróbował
--- wysłać taki zapis ręcznie (np. z konsoli przeglądarki).
 create table if not exists tutor_profiles (
   id bigint generated always as identity primary key,
   user_id uuid not null unique references auth.users(id) on delete cascade,
@@ -493,34 +470,12 @@ create policy "Lektorzy: usuwanie tylko przez admina"
 -- --------------------------------------------------------------------------
 -- 8b) LEKTORZY DODANI RĘCZNIE PRZEZ ADMINA (BEZ WŁASNEGO KONTA)
 -- --------------------------------------------------------------------------
--- Pozwala administratorowi dodać wizytówkę lektora (imię, zdjęcie, opis) bez
--- zakładania dla niego konta logowania — przydatne, gdy lektor zgodził się
--- na publikację danych, ale nie chce (jeszcze) sam się rejestrować, np. na
--- próbę, zanim na dobre dołączy do współpracy. Taki wpis ma user_id = NULL
--- i nie może się nigdzie zalogować — wszystkie zmiany (imię/opis/zdjęcie/
--- publikacja) wprowadza wyłącznie administrator w panelu ("Lektorzy" →
--- "Dodaj lektora ręcznie" / przycisk "Edytuj" przy wizytówce).
---
--- Jeśli taki lektor zdecyduje się później założyć własne konto, rejestruje
--- się normalnie (powstaje nowy, osobny wpis ze statusem "oczekuje"), a starą
--- ręcznie dodaną wizytówkę należy wtedy ręcznie usunąć w panelu (przycisk
--- "Usuń wizytówkę"), żeby nie zostały dwa wpisy tej samej osoby.
---
--- Kolumna user_id musi więc dopuszczać NULL (dotąd była wymagana, bo profil
--- zawsze powstawał razem z kontem), a polityka dodawania wpisów (insert)
--- musi pozwolić administratorowi wstawiać wiersze bez tego ograniczenia.
-
 alter table tutor_profiles alter column user_id drop not null;
 
 
 -- --------------------------------------------------------------------------
 -- 9) GRAFIK ZAJĘĆ — lesson_schedule (wpisy lektorów, wgląd administratora)
 -- --------------------------------------------------------------------------
--- Każdy lektor samodzielnie wpisuje swoje zajęcia (uczeń, data, godzina,
--- notatki) — bez moderacji, bo to wewnętrzna notatka, nie treść publiczna.
--- Ty jako administrator widzisz i możesz edytować grafik WSZYSTKICH
--- lektorów naraz (sekcja "Grafik zajęć" w panelu). Dane te nigdy nie są
--- publicznie widoczne na stronie.
 create table if not exists lesson_schedule (
   id bigint generated always as identity primary key,
   tutor_id uuid not null references auth.users(id) on delete cascade,
@@ -564,14 +519,6 @@ create policy "Grafik: usuwanie własnych wpisów lub przez admina"
 -- --------------------------------------------------------------------------
 -- 9b) STATUS ZAJĘĆ + GRAFIK ADMINA (dopisek do sekcji 9 powyżej)
 -- --------------------------------------------------------------------------
--- Dopisuje do istniejącej tabeli "lesson_schedule" kolumnę "status" (do
--- oznaczania zajęć jako odbyte/odwołane) — bezpieczne do uruchomienia razem
--- z resztą pliku nawet wielokrotnie, "if not exists" nie nadpisze istniejących
--- danych. Żadnych nowych reguł dostępu (RLS) nie trzeba dopisywać: skoro
--- administrator jest też zwykłym zalogowanym użytkownikiem, powyższe reguły
--- ("auth.uid() = tutor_id" ORAZ "is_admin()") już pozwalają mu prowadzić
--- WŁASNY grafik (sekcja "Mój grafik" w panelu) dokładnie tak samo, jak
--- lektorzy prowadzą swój.
 alter table lesson_schedule add column if not exists status text not null default 'planned';
 
 -- --------------------------------------------------------------------------
@@ -579,13 +526,6 @@ alter table lesson_schedule add column if not exists status text not null defaul
 -- --------------------------------------------------------------------------
 -- 10) STAWKA GODZINOWA — admin_settings (do "Podsumowania miesiąca")
 -- --------------------------------------------------------------------------
--- Jedna, prywatna wartość: stawka za godzinę, którą Ty (administrator)
--- wpisujesz sam sobie w sekcji "Mój grafik zajęć" → "Podsumowanie miesiąca".
--- Na jej podstawie strona sama wylicza szacowany zarobek za wybrany miesiąc
--- (proporcjonalnie do długości każdej lekcji: 45/60/90 minut) oraz liczbę
--- lekcji w tym miesiącu (bez odwołanych). Widoczne i edytowalne wyłącznie
--- przez administratora — to dane prywatne, nigdzie nie są publikowane na
--- stronie.
 create table if not exists admin_settings (
   id int primary key default 1,
   hourly_rate numeric not null default 0,
@@ -607,28 +547,11 @@ on conflict (id) do nothing;
 -- --------------------------------------------------------------------------
 -- 11) SERIA POWTARZAJĄCYCH SIĘ ZAJĘĆ — kolumna series_id (do zbiorczego usuwania)
 -- --------------------------------------------------------------------------
--- Gdy dodajesz zajęcia z opcją "Powtarzaj" (co tydzień przez X tygodni),
--- wszystkie wystąpienia tej samej serii dostają wspólny, wspólnie
--- wygenerowany identyfikator w tej kolumnie — dzięki temu przycisk "Usuń
--- całą serię" w panelu może usunąć je wszystkie jednym kliknięciem, zamiast
--- pojedynczo. Zajęcia dodane bez opcji "Powtarzaj" (albo dodane przed tą
--- aktualizacją) mają tu wartość pustą (NULL) — to normalne, po prostu nie
--- należą do żadnej serii.
 alter table lesson_schedule add column if not exists series_id uuid;
 
 -- --------------------------------------------------------------------------
 -- 12) WIDOCZNOŚĆ ZAKŁADEK — nav_visibility (wyłączanie sekcji strony)
 -- --------------------------------------------------------------------------
--- Pozwala administratorowi wyłączyć wybraną zakładkę menu (np. "Nasz
--- zespół", gdy nie ma jeszcze żadnych lektorów) jednym przełącznikiem w
--- panelu. Wyłączenie robi dwie rzeczy naraz: usuwa link z menu na każdej
--- stronie ORAZ blokuje treść samej podstrony (np. zespol.html) komunikatem
--- "strona niedostępna" — więc nie da się tego ominąć bezpośrednim linkiem
--- ani przez wyszukiwarkę. Odczyt jest publiczny (musi działać bez
--- logowania na każdej stronie), zapis tylko dla administratora. Strona
--- kontaktowa (kontakt.html) celowo NIE ma tu wiersza — zostaje zawsze
--- widoczna, żeby nie dało się przypadkiem wyłączyć jedynego sposobu
--- kontaktu z Tobą.
 create table if not exists nav_visibility (
   page_key text primary key,
   label text not null default '',
@@ -661,16 +584,13 @@ insert into nav_visibility (page_key, label, sort_order) values
   ('faq', 'FAQ', 8)
 on conflict (page_key) do nothing;
 
+insert into nav_visibility (page_key, label, sort_order) values
+  ('tlumaczenia', 'Tłumaczenia', 9)
+on conflict (page_key) do nothing;
+
 -- --------------------------------------------------------------------------
 -- 13) SŁOWO NA DZIŚ — words_of_day (codzienna rotacja słówka na stronie głównej)
 -- --------------------------------------------------------------------------
--- Karta "Słowo na dziś" na stronie głównej codziennie pokazuje inne słówko
--- z tej listy — wybór jest deterministyczny (numer dnia od 1.01.1970
--- modulo liczba opublikowanych słówek), więc każdy odwiedzający widzi tego
--- samego dnia to samo słówko, a lista sama się powtarza od początku, gdy
--- się skończy. Zarządzasz nią w panelu (sekcja "Słowo na dziś") tak samo
--- jak pytaniami FAQ — dodajesz, edytujesz, usuwasz albo chwilowo wyłączasz
--- z rotacji przełącznikiem "opublikowane".
 create table if not exists words_of_day (
   id bigint generated always as identity primary key,
   word text not null default '',
@@ -696,8 +616,6 @@ create policy "Słówka: pełny dostęp admina"
   using (is_admin())
   with check (is_admin());
 
--- Startowy zestaw 30 słówek — wstawiany tylko, jeśli tabela jest jeszcze
--- pusta (bezpiecznie ponownie uruchomić ten plik, nie zduplikuje wpisów).
 insert into words_of_day (word, part_of_speech, pronunciation, dialect_label, definition, sort_order)
 select * from (values
   ('understood', 'przym.', '/ˌʌn.dərˈstʊd/', 'AmE', 'w pełni zrozumiany przez rozmówcę — bez nieporozumień.', 1),
@@ -729,20 +647,13 @@ select * from (values
   ('slang', 'rzecz.', '/slæŋ/', 'AmE', 'luźne, potoczne słownictwo, którego nie znajdziesz w podręczniku.', 27),
   ('proficient', 'przym.', '/prəˈfɪʃ.ənt/', 'AmE', 'biegły — posiadający solidne, praktyczne opanowanie języka.', 28),
   ('rapport', 'rzecz.', '/ræˈpɔːr/', 'AmE', 'dobra, naturalna relacja z rozmówcą, oparta na wzajemnym zrozumieniu.', 29),
-  ('breakthrough', 'rzecz.', '/ˈbreɪk.θruː/', 'AmE', 'przełom — moment, w którym język „się klika" i mówienie przestaje być wysiłkiem.', 30)
+  ('breakthrough', 'rzecz.', '/ˈbreɪk.θruː/', 'AmE', 'przełom — moment, w którym język „się klika", a mówienie przestaje być wysiłkiem.', 30)
 ) as seed(word, part_of_speech, pronunciation, dialect_label, definition, sort_order)
 where not exists (select 1 from words_of_day);
 
 -- --------------------------------------------------------------------------
 -- 14) WEBINARY — webinars (zaproszeni goście, spotkania online)
 -- --------------------------------------------------------------------------
--- Nowa zakładka "Webinary" — lista prowadzona ręcznie w panelu (sekcja
--- "Webinary"), posortowana po dacie. Każdy wpis to: temat, prowadzący
--- (imię + krótkie "o kim"), data i godzina, opis oraz jeden uniwersalny
--- link (Zoom / Google Meet / Calendly / nagranie na YouTube — cokolwiek)
--- z własnym podpisem przycisku (np. "Dołącz" albo "Zobacz nagranie").
--- Rejestrowana też jako 8. zakładka w "nav_visibility" (patrz insert
--- niżej), więc można ją wyłączyć/włączyć dokładnie tak samo jak pozostałe.
 create table if not exists webinars (
   id bigint generated always as identity primary key,
   title text not null default '',
@@ -771,8 +682,6 @@ create policy "Webinary: pełny dostęp admina"
   using (is_admin())
   with check (is_admin());
 
--- Rejestracja zakładki "Webinary" w mechanizmie włączania/wyłączania zakładek
--- (patrz sekcja "12" wyżej) — bezpiecznie uruchomić ponownie, nie zduplikuje wpisu.
 insert into nav_visibility (page_key, label, sort_order) values
   ('webinary', 'Webinary', 7)
 on conflict (page_key) do nothing;
@@ -780,17 +689,6 @@ on conflict (page_key) do nothing;
 -- --------------------------------------------------------------------------
 -- 15) WEBINARY — obrazek marketingowy + zapisy uczestników (webinar_registrations)
 -- --------------------------------------------------------------------------
--- Dwie rzeczy naraz:
--- (a) każdy webinar może mieć własny obrazek marketingowy (wgrywany w panelu,
---     tak jak zdjęcie lektora) — nowa kolumna "image_url";
--- (b) odwiedzający stronę mogą zapisać się na webinar (imię + e-mail), nawet
---     jeśli webinar jest bezpłatny — nowa tabela "webinar_registrations".
---     Zapis wymaga zaznaczenia zgody na przetwarzanie danych (kolumna
---     "consent" — wymuszone też po stronie bazy, nie tylko w formularzu).
---     Ten sam e-mail nie może zapisać się dwa razy na ten sam webinar
---     (unikalny indeks) — druga próba pokaże komunikat "już jesteś zapisany"
---     zamiast tworzyć duplikat. Listę zapisanych i ich liczbę widzi tylko
---     administrator w panelu, w sekcji "Webinary".
 alter table webinars add column if not exists image_url text not null default '';
 
 create table if not exists webinar_registrations (
@@ -825,15 +723,6 @@ create policy "Zapisy na webinar: usuwanie tylko admin"
 -- --------------------------------------------------------------------------
 -- 16) DIAGNOZA POGŁĘBIONA — kody dostępu (diagnosis_codes) i wyniki (diagnosis_results)
 -- --------------------------------------------------------------------------
--- Osobna, ukryta podstrona (diagnoza.html, nie ma jej w żadnym menu) z dwoma
--- dłuższymi testami diagnostycznymi (ogólny i biznesowy) — dostępna wyłącznie
--- dla kursantów, którym Ty osobiście przekażesz indywidualny kod dostępu
--- (generowany w panelu, sekcja "Diagnoza pogłębiona"). Kod NIE jest
--- jednorazowy — można się nim zalogować wielokrotnie (np. żeby zrobić oba
--- testy albo wrócić po przypadkowym odświeżeniu strony) — dopóki Ty go nie
--- dezaktywujesz. Kod nie jest widoczny publicznie ani nie da się go
--- "wylistować" przez API — sprawdzenie kodu przechodzi przez funkcję
--- check_diagnosis_code() poniżej, która nie ujawnia zawartości całej tabeli.
 create table if not exists diagnosis_codes (
   id bigint generated always as identity primary key,
   code text not null,
@@ -906,9 +795,8 @@ create policy "Wyniki diagnozy: usuwanie tylko admin"
   using (is_admin());
 
 -- --------------------------------------------------------------------------
--- 16b) KOLUMNY DLA CELU NAUKI I SERII DNI Z RZĘDU (dopisek do sekcji 16, patrz
--- pełny opis w sekcji 19 niżej) — muszą powstać PRZED funkcją z sekcji 17,
--- bo ta już z nich korzysta.
+-- 16b) KOLUMNY DLA CELU NAUKI I SERII DNI Z RZĘDU (dopisek do sekcji 16)
+-- --------------------------------------------------------------------------
 alter table diagnosis_codes add column if not exists goal_text text not null default '';
 alter table diagnosis_codes add column if not exists last_visit_date date;
 alter table diagnosis_codes add column if not exists streak_count int not null default 0;
@@ -916,29 +804,6 @@ alter table diagnosis_codes add column if not exists streak_count int not null d
 -- --------------------------------------------------------------------------
 -- 17) PANEL KURSANTA — get_student_portal_data (dopisek do sekcji 16 wyżej)
 -- --------------------------------------------------------------------------
--- Ten sam kod dostępu z sekcji 16 (diagnosis_codes) służy teraz też jako
--- proste logowanie do panelu kursanta (panel-kursanta.html) — kursant widzi
--- tam historię swoich diagnoz oraz nadchodzące zajęcia. Nie trzeba zakładać
--- osobnych kont: to jedna funkcja bezpieczeństwa (security definer), która
--- po podaniu poprawnego, aktywnego kodu zwraca TYLKO dane tego jednego
--- kursanta — nigdy całą zawartość tabel (tak samo jak check_diagnosis_code
--- powyżej).
---
--- Dopasowanie nadchodzących zajęć do kursanta odbywa się PO IMIENIU I
--- NAZWISKU (bez rozróżniania wielkości liter i spacji na końcu) —
--- porównywane jest pole "student_name" z grafiku zajęć lektora z polem
--- "student_name" przypisanym do kodu dostępu. Żeby zajęcia kursanta
--- pojawiały się w jego panelu, wpisuj jego imię i nazwisko TAK SAMO w obu
--- miejscach (przy generowaniu kodu w panelu administratora i w grafiku
--- zajęć lektora) — to jedyny warunek, żeby to zadziałało.
---
--- Funkcja zwraca też "goal_text" (cel nauki kursanta — patrz sekcja 19) i
--- "streak_count" (seria dni z rzędu, aktualizowana automatycznie przy każdym
--- logowaniu, patrz sekcja 19). UWAGA: jeśli kiedyś trzeba będzie jeszcze raz
--- zmienić zestaw zwracanych kolumn tej funkcji, "create or replace" na to
--- nie pozwoli (Postgres wymaga wtedy najpierw "drop function") — dlatego
--- poniżej jest wprost "drop function if exists" przed każdym uruchomieniem,
--- żeby ten plik zawsze dało się bezpiecznie uruchomić ponownie w całości.
 drop function if exists get_student_portal_data(text);
 
 create function get_student_portal_data(p_code text)
@@ -963,8 +828,6 @@ begin
     return;
   end if;
 
-  -- Aktualizacja serii dni z rzędu: ten sam dzień = bez zmian, wczoraj = +1,
-  -- większa przerwa (albo pierwsza wizyta) = zaczynamy liczyć od nowa (1).
   if v_last_visit is null or v_last_visit < current_date - 1 then
     v_streak := 1;
   elsif v_last_visit = current_date - 1 then
@@ -1006,13 +869,6 @@ grant execute on function get_student_portal_data(text) to anon, authenticated;
 -- --------------------------------------------------------------------------
 -- 18) CYTATY MOTYWUJĄCE — motivational_quotes (rotacja w panelu kursanta)
 -- --------------------------------------------------------------------------
--- Karta z cytatem w panelu kursanta (panel-kursanta.html) codziennie
--- pokazuje inny cytat z tej listy — ten sam mechanizm rotacji co "Słowo na
--- dziś" (numer dnia modulo liczba opublikowanych cytatów), więc każdy
--- kursant widzi tego samego dnia ten sam cytat, a lista powtarza się od
--- początku, gdy się skończy. Zarządzasz nią w panelu (sekcja "Cytaty
--- motywujące") tak samo jak słówkami — dodajesz, edytujesz, usuwasz albo
--- chwilowo wyłączasz z rotacji przełącznikiem "opublikowane".
 create table if not exists motivational_quotes (
   id bigint generated always as identity primary key,
   quote_text text not null default '',
@@ -1035,8 +891,6 @@ create policy "Cytaty: pełny dostęp admina"
   using (is_admin())
   with check (is_admin());
 
--- Startowy zestaw 18 cytatów — wstawiany tylko, jeśli tabela jest jeszcze
--- pusta (bezpiecznie ponownie uruchomić ten plik, nie zduplikuje wpisów).
 insert into motivational_quotes (quote_text, author, sort_order)
 select * from (values
   ('Kto nie zna języków obcych, nie wie nic o własnym.', 'Johann Wolfgang von Goethe', 1),
@@ -1054,7 +908,7 @@ select * from (values
   ('Znajomość języków jest bramą do mądrości.', 'Roger Bacon', 13),
   ('Mówić danym językiem — to przyjąć cały świat, całą kulturę.', 'Frantz Fanon', 14),
   ('Im więcej czytasz, tym więcej wiesz. Im więcej się uczysz, tym dalej zajdziesz.', 'Dr. Seuss', 15),
-  ('Słowo „nie wiem” jest małe, ale lata na mocnych skrzydłach.', 'Wisława Szymborska', 16),
+  ('Słowo „nie wiem" jest małe, ale lata na mocnych skrzydłach.', 'Wisława Szymborska', 16),
   ('Człowiek, który nie czyta, nie ma żadnej przewagi nad tym, kto czytać nie potrafi.', 'Mark Twain', 17),
   ('Zawsze wyobrażałem sobie raj jako rodzaj biblioteki.', 'Jorge Luis Borges', 18)
 ) as seed(quote_text, author, sort_order)
@@ -1063,33 +917,6 @@ where not exists (select 1 from motivational_quotes);
 -- --------------------------------------------------------------------------
 -- 19) CEL NAUKI I SERIA DNI Z RZĘDU (dopisek do sekcji 16/17 — panel kursanta)
 -- --------------------------------------------------------------------------
--- Dwie kolejne rzeczy w panelu kursanta, dalej bez zakładania jakichkolwiek
--- kont — cały czas ten sam kod dostępu z sekcji 16 (diagnosis_codes):
---
--- a) "Twój cel nauki" — jedno zdanie, które kursant może wpisać sam w swoim
---    panelu (przycisk "Zapisz cel", funkcja update_student_goal() poniżej —
---    zapisuje WYŁĄCZNIE pole celu, pod warunkiem podania aktywnego kodu, nic
---    więcej z wiersza nie da się przez nią zmienić). Ty jako administrator
---    możesz wpisać albo poprawić ten sam cel bezpośrednio w panelu (sekcja
---    "Diagnoza pogłębiona" → pole "Cel nauki" przy danym kodzie) — np. gdy
---    kursant powie Ci go telefonicznie albo osobiście.
--- b) Seria dni z rzędu (streak) — licznik, ile dni z rzędu kursant zaglądał
---    do swojego panelu. Aktualizowany automatycznie przy każdym logowaniu
---    (funkcja get_student_portal_data() w sekcji 17 wyżej, która teraz zwraca
---    też te dwie wartości) — nie wymaga żadnej dodatkowej akcji ani od
---    Ciebie, ani od kursanta.
---
--- (Kolumny goal_text / last_visit_date / streak_count są już dodane w
--- sekcji 16 wyżej, razem z resztą tabeli diagnosis_codes — musiały tam
--- trafić, bo funkcja get_student_portal_data() z sekcji 17 już z nich
--- korzysta, a kolumna musi istnieć, zanim powstanie funkcja, która się do
--- niej odwołuje.)
-
--- Osobna, wąska funkcja tylko do zapisu celu nauki przez samego kursanta —
--- podanie aktywnego kodu pozwala zmienić WYŁĄCZNIE pole "goal_text" tego
--- jednego wiersza, nic więcej (nie da się przez nią np. zmienić imienia,
--- dezaktywować kodu ani zobaczyć czyichkolwiek danych). Długość celu jest
--- obcinana do 300 znaków jako proste zabezpieczenie przed nadużyciem.
 create or replace function update_student_goal(p_code text, p_goal text)
 returns boolean
 language plpgsql
@@ -1105,6 +932,322 @@ end;
 $$;
 
 grant execute on function update_student_goal(text, text) to anon, authenticated;
+
+-- --------------------------------------------------------------------------
+-- 20) GRA NA ROZGRZEWKĘ — letter_game_days (panel kursanta)
+-- --------------------------------------------------------------------------
+create table if not exists letter_game_days (
+  id bigint generated always as identity primary key,
+  letters text not null default '',
+  published boolean not null default true,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table letter_game_days enable row level security;
+
+drop policy if exists "Gra w litery: publiczny odczyt opublikowanych" on letter_game_days;
+create policy "Gra w litery: publiczny odczyt opublikowanych"
+  on letter_game_days for select
+  using (published = true);
+
+drop policy if exists "Gra w litery: pełny dostęp admina" on letter_game_days;
+create policy "Gra w litery: pełny dostęp admina"
+  on letter_game_days for all
+  using (is_admin())
+  with check (is_admin());
+
+insert into letter_game_days (letters, sort_order)
+select * from (values
+  ('TEACHERS', 1),
+  ('LANGUAGE', 2),
+  ('STUDENTS', 3),
+  ('GRAMMAR', 4),
+  ('LISTENING', 5),
+  ('VOCABULARY', 6)
+) as seed(letters, sort_order)
+where not exists (select 1 from letter_game_days);
+
+-- --------------------------------------------------------------------------
+-- 21) AVATAR KURSANTA (dopisek do sekcji 16/17 — panel kursanta)
+-- --------------------------------------------------------------------------
+alter table diagnosis_codes add column if not exists avatar_data_url text not null default '';
+
+drop function if exists get_student_portal_data(text);
+
+create function get_student_portal_data(p_code text)
+returns table(student_name text, results jsonb, lessons jsonb, goal_text text, streak_count int, avatar_data_url text)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id bigint;
+  v_name text;
+  v_goal text;
+  v_last_visit date;
+  v_streak int;
+  v_avatar text;
+begin
+  select dc.id, dc.student_name, dc.goal_text, dc.last_visit_date, dc.streak_count, dc.avatar_data_url
+    into v_id, v_name, v_goal, v_last_visit, v_streak, v_avatar
+  from diagnosis_codes dc
+  where upper(dc.code) = upper(p_code) and dc.active = true;
+
+  if v_name is null then
+    return;
+  end if;
+
+  if v_last_visit is null or v_last_visit < current_date - 1 then
+    v_streak := 1;
+  elsif v_last_visit = current_date - 1 then
+    v_streak := coalesce(v_streak, 0) + 1;
+  end if;
+
+  update diagnosis_codes
+  set last_visit_date = current_date, streak_count = v_streak
+  where id = v_id;
+
+  return query
+  select
+    v_name,
+    coalesce((
+      select jsonb_agg(to_jsonb(res) order by res.created_at desc)
+      from (
+        select id, test_type, levels, report_text, created_at
+        from diagnosis_results
+        where code = p_code
+      ) res
+    ), '[]'::jsonb),
+    coalesce((
+      select jsonb_agg(to_jsonb(les) order by les.lesson_date asc, les.lesson_time asc)
+      from (
+        select id, lesson_date, lesson_time, duration_minutes, status
+        from lesson_schedule
+        where lower(trim(lesson_schedule.student_name)) = lower(trim(v_name))
+          and lesson_date >= current_date
+          and status = 'planned'
+      ) les
+    ), '[]'::jsonb),
+    v_goal,
+    v_streak,
+    v_avatar;
+end;
+$$;
+
+grant execute on function get_student_portal_data(text) to anon, authenticated;
+
+create or replace function update_student_avatar(p_code text, p_avatar_data_url text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update diagnosis_codes
+  set avatar_data_url = left(coalesce(p_avatar_data_url, ''), 200000)
+  where upper(code) = upper(p_code) and active = true;
+  return found;
+end;
+$$;
+
+grant execute on function update_student_avatar(text, text) to anon, authenticated;
+
+-- --------------------------------------------------------------------------
+-- 22) STAWKI INDYWIDUALNE KURSANTÓW — student_rates (dopisek do sekcji 10)
+-- --------------------------------------------------------------------------
+create table if not exists student_rates (
+  id bigint generated always as identity primary key,
+  student_name text not null default '',
+  hourly_rate numeric not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists student_rates_unique_name
+  on student_rates (lower(trim(student_name)));
+
+alter table student_rates enable row level security;
+
+drop policy if exists "Stawki kursantów: tylko administrator" on student_rates;
+create policy "Stawki kursantów: tylko administrator"
+  on student_rates for all
+  using (is_admin())
+  with check (is_admin());
+
+-- --------------------------------------------------------------------------
+-- 23) MÓJ ZESZYT KURSANTA — student_notebook_entries (dopisek do sekcji 16/17)
+-- --------------------------------------------------------------------------
+create table if not exists student_notebook_entries (
+  id bigint generated always as identity primary key,
+  code text not null,
+  entry_type text not null default 'notatka', -- 'slowko' | 'blad' | 'zwrot' | 'notatka'
+  title text not null default '',
+  body text not null default '',
+  example_sentence text not null default '',
+  created_at timestamptz not null default now()
+);
+
+create index if not exists student_notebook_entries_code_idx
+  on student_notebook_entries (upper(code));
+
+alter table student_notebook_entries enable row level security;
+
+drop policy if exists "Zeszyt kursanta: pelny dostep tylko admin" on student_notebook_entries;
+create policy "Zeszyt kursanta: pelny dostep tylko admin"
+  on student_notebook_entries for all
+  using (is_admin())
+  with check (is_admin());
+
+create or replace function get_notebook_entries(p_code text)
+returns setof student_notebook_entries
+language sql
+security definer
+set search_path = public
+as $$
+  select n.*
+  from student_notebook_entries n
+  where upper(n.code) = upper(p_code)
+    and exists (
+      select 1 from diagnosis_codes d
+      where upper(d.code) = upper(p_code) and d.active = true
+    )
+  order by n.created_at desc;
+$$;
+
+grant execute on function get_notebook_entries(text) to anon, authenticated;
+
+create or replace function add_notebook_entry(
+  p_code text, p_entry_type text, p_title text, p_body text, p_example_sentence text
+)
+returns student_notebook_entries
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_row student_notebook_entries;
+begin
+  if not exists (select 1 from diagnosis_codes where upper(code) = upper(p_code) and active = true) then
+    raise exception 'Nieprawidlowy lub nieaktywny kod dostepu.';
+  end if;
+
+  insert into student_notebook_entries (code, entry_type, title, body, example_sentence)
+  values (
+    p_code,
+    coalesce(nullif(trim(p_entry_type), ''), 'notatka'),
+    left(coalesce(p_title, ''), 200),
+    left(coalesce(p_body, ''), 2000),
+    left(coalesce(p_example_sentence, ''), 500)
+  )
+  returning * into v_row;
+
+  return v_row;
+end;
+$$;
+
+grant execute on function add_notebook_entry(text, text, text, text, text) to anon, authenticated;
+
+create or replace function update_notebook_entry(
+  p_code text, p_id bigint, p_title text, p_body text, p_example_sentence text
+)
+returns student_notebook_entries
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_row student_notebook_entries;
+begin
+  update student_notebook_entries
+  set title = left(coalesce(p_title, ''), 200),
+      body = left(coalesce(p_body, ''), 2000),
+      example_sentence = left(coalesce(p_example_sentence, ''), 500)
+  where id = p_id and upper(code) = upper(p_code)
+  returning * into v_row;
+
+  return v_row;
+end;
+$$;
+
+grant execute on function update_notebook_entry(text, bigint, text, text, text) to anon, authenticated;
+
+create or replace function delete_notebook_entry(p_code text, p_id bigint)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  delete from student_notebook_entries
+  where id = p_id and upper(code) = upper(p_code);
+end;
+$$;
+
+grant execute on function delete_notebook_entry(text, bigint) to anon, authenticated;
+
+-- --------------------------------------------------------------------------
+-- 24) TŁUMACZENIA — translation_pricing
+-- --------------------------------------------------------------------------
+create table if not exists translation_pricing (
+  id bigint generated always as identity primary key,
+  category_key text not null unique,
+  category_label text not null,
+  description text not null default '',
+  page_size_chars int not null default 1800,
+  price_per_page numeric(10,2) not null default 0,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table translation_pricing enable row level security;
+
+drop policy if exists "Cennik tłumaczeń: publiczny odczyt" on translation_pricing;
+create policy "Cennik tłumaczeń: publiczny odczyt"
+  on translation_pricing for select
+  using (true);
+
+drop policy if exists "Cennik tłumaczeń: zapis tylko dla administratora" on translation_pricing;
+create policy "Cennik tłumaczeń: zapis tylko dla administratora"
+  on translation_pricing for all
+  using (is_admin())
+  with check (is_admin());
+
+insert into translation_pricing (category_key, category_label, description, page_size_chars, price_per_page, sort_order)
+select * from (values
+  ('zwykle', 'Tłumaczenia zwykłe', 'Teksty ogólne, korespondencja, proste dokumenty bez specjalistycznej terminologii.', 1800, 0::numeric, 1),
+  ('przysiegle', 'Tłumaczenia przysięgłe', 'Dokumenty urzędowe wymagające uwierzytelnienia: akty, świadectwa, dyplomy, umowy do urzędu lub sądu.', 1125, 0::numeric, 2),
+  ('specjalistyczne', 'Tłumaczenia specjalistyczne', 'Teksty techniczne, prawnicze, medyczne i finansowe wymagające specjalistycznej terminologii.', 1800, 0::numeric, 3),
+  ('marketingowe', 'Tłumaczenia marketingowe i CV', 'CV, listy motywacyjne, opisy produktów, treści reklamowe i strony internetowe.', 1800, 0::numeric, 4)
+) as seed(category_key, category_label, description, page_size_chars, price_per_page, sort_order)
+where not exists (select 1 from translation_pricing);
+
+-- --------------------------------------------------------------------------
+-- 25) TREŚCI STRONY GŁÓWNEJ — HERO (dopisek do sekcji 4 — site_content)
+-- --------------------------------------------------------------------------
+-- Trzy nowe pola edytowalne w panelu (zakładka "Treści stron"): mały
+-- nagłówek nad tytułem (eyebrow), główny tytuł (H1) i akapit wstępu (lead)
+-- w sekcji hero strony głównej. Wartości startowe odpowiadają dokładnie
+-- temu, co dziś jest na sztywno wpisane w index.html — więc podmiana nie
+-- zmienia niczego na stronie, dopóki administrator sam czegoś nie
+-- zedytuje. Osobny insert (jak przy "tlumaczenia"/"webinary" wyżej), żeby
+-- nie zaburzać numeracji sort_order istniejących wierszy w sekcji 4.
+insert into site_content (key, label, value, input_type, sort_order) values
+  ('index_hero_eyebrow', 'Strona główna — hero, mały nagłówek nad tytułem', 'Kursy języka angielskiego dla dorosłych i młodzieży', 'text', 9),
+  ('index_hero_title', 'Strona główna — hero, główny tytuł (H1)', 'Mów po angielsku tak, żeby naprawdę być zrozumianym.', 'text', 10),
+  ('index_hero_lead', 'Strona główna — hero, akapit wstępu pod tytułem', 'Kurs dla dorosłych, młodzieży i studentów, którzy znają już podstawy, ale wciąż brakuje im pewności siebie w rozmowie. Pracujemy nad swobodą mówienia i pewnością siebie — nie nad kolejnym testem gramatycznym.', 'textarea', 11)
+on conflict (key) do nothing;
+
+-- --------------------------------------------------------------------------
+-- 26) WIDOCZNOŚĆ SEKCJI „CO MÓWIĄ KURSANCI” NA STRONIE GŁÓWNEJ (dopisek do
+-- sekcji 12 — nav_visibility)
+-- --------------------------------------------------------------------------
+-- Działa tym samym mechanizmem co pozostałe przełączniki w nav_visibility,
+-- ale ten klucz nie odpowiada osobnej podstronie — wyłączenie go chowa
+-- tylko sekcję „Co mówią kursanci” na index.html (patrz js/site-content.js,
+-- SECTION_ELEMENT_BY_KEY), reszta strony głównej zostaje bez zmian.
+insert into nav_visibility (page_key, label, sort_order) values
+  ('index-testimonials', 'Sekcja "Co mówią kursanci" (strona główna)', 10)
+on conflict (page_key) do nothing;
 
 -- ==========================================================================
 -- Koniec. Następne kroki:
