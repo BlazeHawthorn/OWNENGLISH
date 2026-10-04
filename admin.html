@@ -137,339 +137,450 @@
 
     <div id="admin-global-message" class="admin-message" style="margin-bottom:24px;"></div>
 
-    <!-- DZISIEJSZE ZAJĘCIA -->
-    <section class="card" style="margin-bottom:32px;">
-      <h2 class="h2-sm" style="margin-bottom:6px;">Dzisiejsze zajęcia</h2>
-      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Wszystkie zajęcia zaplanowane na dziś — Twoje własne oraz wszystkich lektorów. Status możesz zmienić od razu tutaj.</p>
-      <div data-admin-today></div>
-    </section>
+    <div class="admin-layout">
 
-    <!-- MÓJ GRAFIK -->
-    <section class="card" style="margin-bottom:32px;">
-      <h2 class="h2-sm" style="margin-bottom:6px;">Mój grafik zajęć</h2>
-      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Twój własny grafik zajęć — dodajesz i prowadzisz go dokładnie tak samo, jak robią to lektorzy w swoim panelu. Widoczny tylko dla Ciebie. Jeśli kurs odbywa się regularnie w tym samym terminie, wybierz opcję „Powtarzaj" niżej — doda od razu wszystkie kolejne terminy (każdy jako osobny wpis, więc pojedyncze zajęcia z serii możesz później odwołać albo usunąć bez ruszania reszty).</p>
-
-      <div class="card-outline" style="margin:16px 0 24px; padding:20px;">
-        <h3 class="text-strong" style="font-size:14.5px; margin-bottom:12px;">Podsumowanie miesiąca</h3>
-        <div class="row gap-sm" style="align-items:center; margin-bottom:16px;">
-          <button type="button" id="summary-month-prev" class="btn btn-outline btn-xs" aria-label="Poprzedni miesiąc">◀</button>
-          <strong id="summary-month-label" style="min-width:150px; text-align:center;">—</strong>
-          <button type="button" id="summary-month-next" class="btn btn-outline btn-xs" aria-label="Następny miesiąc">▶</button>
-        </div>
-        <div class="grid grid-2" style="gap:16px; margin-bottom:16px; max-width:420px;">
-          <div class="stack gap-xs">
-            <span class="footer-heading">Liczba lekcji</span>
-            <span class="text-strong" id="summary-lesson-count" style="font-size:26px;">0</span>
-          </div>
-          <div class="stack gap-xs">
-            <span class="footer-heading">Szacowany zarobek</span>
-            <span class="text-strong" id="summary-earnings" style="font-size:26px;">0,00 zł</span>
-          </div>
-        </div>
-        <p class="text-muted" style="font-size:12px; margin-bottom:14px;">Liczone z zajęć zaplanowanych i odbytych w wybranym miesiącu (odwołane się nie liczą), proporcjonalnie do długości każdej lekcji.</p>
-        <form id="admin-hourly-rate-form" class="row gap-sm" style="align-items:flex-end; flex-wrap:wrap;">
-          <div class="field" style="max-width:160px; margin-bottom:0;">
-            <label for="admin-hourly-rate">Stawka za godzinę (zł)</label>
-            <input type="number" id="admin-hourly-rate" min="0" step="0.01" placeholder="np. 100">
-          </div>
-          <button type="submit" class="btn btn-primary btn-xs">Zapisz stawkę</button>
-        </form>
-      </div>
-
-      <div class="card-outline" style="margin:16px 0 24px; padding:20px;">
-        <h3 class="text-strong" style="font-size:14.5px; margin-bottom:6px;">Stawki indywidualne kursantów (opcjonalnie)</h3>
-        <p class="text-muted" style="font-size:12.5px; margin-bottom:12px;">Jeśli dla danego kursanta chcesz liczyć inną stawkę niż ogólna powyżej, wpisz tu jego imię i nazwisko (dokładnie tak samo, jak w grafiku) razem ze stawką za godzinę. „Podsumowanie miesiąca" automatycznie użyje tej stawki dla jego zajęć — dla wszystkich pozostałych kursantów nadal liczy się stawka ogólna.</p>
-        <div data-admin-student-rates></div>
-        <div class="admin-add-row">
-          <input type="text" data-new-student-rate data-field="student_name" placeholder="Imię i nazwisko kursanta">
-          <input type="number" data-new-student-rate data-field="hourly_rate" min="0" step="0.01" placeholder="Stawka za godzinę (zł)">
-          <button type="button" class="btn btn-primary btn-sm" data-action="add-student-rate">+ Dodaj stawkę</button>
-        </div>
-      </div>
-
-      <h3 class="text-strong" style="font-size:14.5px; margin:20px 0 10px;">Podgląd — najbliższe 7 dni</h3>
-      <p class="text-muted" style="font-size:12.5px; margin-bottom:10px;">Kliknij „+ Dodaj" pod wybranym dniem — od razu ustawi tę datę w formularzu poniżej. Na telefonie przesuń tabelę palcem w bok, żeby zobaczyć kolejne dni.</p>
-      <div data-my-schedule-week style="margin-bottom:24px;"></div>
-
-      <h3 class="text-strong" style="font-size:14.5px; margin:20px 0 10px;">Pełna lista</h3>
-      <div data-my-schedule></div>
-      <div class="admin-add-row">
-        <input type="text" data-new-my-lesson data-field="student_name" placeholder="Imię ucznia">
-        <input type="date" data-new-my-lesson data-field="lesson_date">
-        <input type="time" data-new-my-lesson data-field="lesson_time">
-        <select data-new-my-lesson data-field="duration_minutes">
-          <option value="45">45 min</option>
-          <option value="60" selected>60 min</option>
-          <option value="90">90 min</option>
+      <!-- NAWIGACJA ZAKŁADEK (sidebar po lewej na desktopie, lista rozwijana na telefonie) -->
+      <nav class="admin-sidebar" aria-label="Sekcje panelu administracyjnego">
+        <select id="admin-tab-select" class="admin-tab-select">
+          <option value="today">Dzisiejsze zajęcia</option>
+          <option value="my-schedule">Mój grafik zajęć</option>
+          <option value="tutors">Lektorzy</option>
+          <option value="schedule-all">Grafik zajęć — wszyscy lektorzy</option>
+          <option value="nav-visibility">Widoczność zakładek</option>
+          <option value="pricing-individual">Cennik — indywidualne</option>
+          <option value="pricing-group">Cennik — grupowe</option>
+          <option value="pricing-translation">Cennik tłumaczeń</option>
+          <option value="testimonials">Opinie kursantów</option>
+          <option value="faq">FAQ</option>
+          <option value="words">Słowo na dziś</option>
+          <option value="quotes">Cytaty motywujące</option>
+          <option value="letters">Gra na rozgrzewkę</option>
+          <option value="content">Treści stron</option>
+          <option value="photo">Zdjęcie lektora</option>
+          <option value="videos">Filmiki - lekcje</option>
+          <option value="webinars">Webinary</option>
+          <option value="diagnosis">Diagnoza pogłębiona</option>
+          <option value="contact">Dane kontaktowe</option>
         </select>
-        <input type="text" data-new-my-lesson data-field="notes" placeholder="Notatka (opcjonalnie)">
-        <select id="my-lesson-repeat-select">
-          <option value="1">Tylko raz</option>
-          <option value="4">Co tydzień przez 4 tygodnie</option>
-          <option value="8">Co tydzień przez 8 tygodni</option>
-          <option value="12">Co tydzień przez 12 tygodni</option>
-          <option value="24">Co tydzień przez 24 tygodnie</option>
-          <option value="52">Co tydzień przez 52 tygodnie (rok)</option>
-        </select>
-        <button type="button" class="btn btn-primary btn-sm" data-action="add-my-lesson">+ Dodaj zajęcia</button>
-      </div>
-    </section>
+        <div class="admin-sidebar-list">
+          <button type="button" class="admin-tab-btn" data-tab-target="today">Dzisiejsze zajęcia</button>
+          <button type="button" class="admin-tab-btn" data-tab-target="my-schedule">Mój grafik zajęć</button>
+          <button type="button" class="admin-tab-btn" data-tab-target="tutors">Lektorzy</button>
+          <button type="button" class="admin-tab-btn" data-tab-target="schedule-all">Grafik zajęć — wszyscy lektorzy</button>
+          <button type="button" class="admin-tab-btn" data-tab-target="nav-visibility">Widoczność zakładek</button>
+          <button type="button" class="admin-tab-btn" data-tab-target="pricing-individual">Cennik — indywidualne</button>
+          <button type="button" class="admin-tab-btn" data-tab-target="pricing-group">Cennik — grupowe</button>
+          <button type="button" class="admin-tab-btn" data-tab-target="pricing-translation">Cennik tłumaczeń</button>
+          <button type="button" class="admin-tab-btn" data-tab-target="testimonials">Opinie kursantów</button>
+          <button type="button" class="admin-tab-btn" data-tab-target="faq">FAQ</button>
+          <button type="button" class="admin-tab-btn" data-tab-target="words">Słowo na dziś</button>
+          <button type="button" class="admin-tab-btn" data-tab-target="quotes">Cytaty motywujące</button>
+          <button type="button" class="admin-tab-btn" data-tab-target="letters">Gra na rozgrzewkę</button>
+          <button type="button" class="admin-tab-btn" data-tab-target="content">Treści stron</button>
+          <button type="button" class="admin-tab-btn" data-tab-target="photo">Zdjęcie lektora</button>
+          <button type="button" class="admin-tab-btn" data-tab-target="videos">Filmiki - lekcje</button>
+          <button type="button" class="admin-tab-btn" data-tab-target="webinars">Webinary</button>
+          <button type="button" class="admin-tab-btn" data-tab-target="diagnosis">Diagnoza pogłębiona</button>
+          <button type="button" class="admin-tab-btn" data-tab-target="contact">Dane kontaktowe</button>
+        </div>
+      </nav>
 
-    <!-- LEKTORZY -->
-    <section class="card" style="margin-bottom:32px;">
-      <h2 class="h2-sm" style="margin-bottom:6px;">Lektorzy</h2>
-      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Nowe konta czekają na zatwierdzenie, zanim lektor będzie mógł cokolwiek opublikować. Zmiany profilu (imię/opis/zdjęcie) też wymagają Twojej akceptacji za każdym razem.</p>
+      <div class="admin-tab-panels">
 
-      <div class="card-outline" style="margin:16px 0 24px; padding:20px;">
-        <h3 class="text-strong" style="font-size:14.5px; margin-bottom:6px;">Dodaj lektora ręcznie (bez konta)</h3>
-        <p class="text-muted" style="font-size:12px; margin-bottom:14px;">Użyj tego, gdy lektor zgodził się na umieszczenie imienia, zdjęcia i opisu, ale nie chce (jeszcze) sam zakładać konta i logować się na stronie — np. na próbę, zanim na dobre dołączy do współpracy. Taki profil nie ma własnego logowania — wszystkie dane wpisujesz i aktualizujesz tutaj, w panelu.</p>
-        <form id="manual-tutor-form" class="stack gap-sm">
-          <div class="field">
-            <label for="manual-tutor-name">Imię i nazwisko</label>
-            <input type="text" id="manual-tutor-name" placeholder="np. Anna Kowalska">
+        <!-- DZISIEJSZE ZAJĘCIA -->
+        <section class="card admin-tab-panel" data-tab-panel="today">
+          <h2 class="h2-sm" style="margin-bottom:6px;">Dzisiejsze zajęcia</h2>
+          <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Wszystkie zajęcia zaplanowane na dziś — Twoje własne oraz wszystkich lektorów. Status możesz zmienić od razu tutaj.</p>
+          <div data-admin-today></div>
+        </section>
+
+        <!-- MÓJ GRAFIK -->
+        <section class="card admin-tab-panel" data-tab-panel="my-schedule">
+          <h2 class="h2-sm" style="margin-bottom:6px;">Mój grafik zajęć</h2>
+          <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Twój własny grafik zajęć — dodajesz i prowadzisz go dokładnie tak samo, jak robią to lektorzy w swoim panelu. Widoczny tylko dla Ciebie. Jeśli kurs odbywa się regularnie w tym samym terminie, wybierz opcję „Powtarzaj" niżej — doda od razu wszystkie kolejne terminy (każdy jako osobny wpis, więc pojedyncze zajęcia z serii możesz później odwołać albo usunąć bez ruszania reszty).</p>
+
+          <div class="card-outline" style="margin:16px 0 24px; padding:20px;">
+            <h3 class="text-strong" style="font-size:14.5px; margin-bottom:12px;">Podsumowanie miesiąca</h3>
+            <div class="row gap-sm" style="align-items:center; margin-bottom:16px;">
+              <button type="button" id="summary-month-prev" class="btn btn-outline btn-xs" aria-label="Poprzedni miesiąc">◀</button>
+              <strong id="summary-month-label" style="min-width:150px; text-align:center;">—</strong>
+              <button type="button" id="summary-month-next" class="btn btn-outline btn-xs" aria-label="Następny miesiąc">▶</button>
+            </div>
+            <div class="grid grid-2" style="gap:16px; margin-bottom:16px; max-width:420px;">
+              <div class="stack gap-xs">
+                <span class="footer-heading">Liczba lekcji</span>
+                <span class="text-strong" id="summary-lesson-count" style="font-size:26px;">0</span>
+              </div>
+              <div class="stack gap-xs">
+                <span class="footer-heading">Szacowany zarobek</span>
+                <span class="text-strong" id="summary-earnings" style="font-size:26px;">0,00 zł</span>
+              </div>
+            </div>
+            <p class="text-muted" style="font-size:12px; margin-bottom:14px;">Liczone z zajęć zaplanowanych i odbytych w wybranym miesiącu (odwołane się nie liczą), proporcjonalnie do długości każdej lekcji.</p>
+            <form id="admin-hourly-rate-form" class="row gap-sm" style="align-items:flex-end; flex-wrap:wrap;">
+              <div class="field" style="max-width:160px; margin-bottom:0;">
+                <label for="admin-hourly-rate">Stawka za godzinę (zł)</label>
+                <input type="number" id="admin-hourly-rate" min="0" step="0.01" placeholder="np. 100">
+              </div>
+              <button type="submit" class="btn btn-primary btn-xs">Zapisz stawkę</button>
+            </form>
           </div>
-          <div class="field">
-            <label for="manual-tutor-bio">O lektorze</label>
-            <textarea id="manual-tutor-bio" rows="4" placeholder="Kilka zdań o doświadczeniu i podejściu do nauczania"></textarea>
-          </div>
-          <div class="admin-photo-upload">
-            <img id="manual-tutor-photo-preview" src="img/lektor-przyklad.svg" alt="Podgląd zdjęcia lektora">
-            <div class="stack gap-sm">
-              <input type="file" id="manual-tutor-photo-input" accept="image/png, image/jpeg, image/webp">
-              <div id="manual-tutor-photo-message" class="admin-message" style="display:none;"></div>
+
+          <div class="card-outline" style="margin:16px 0 24px; padding:20px;">
+            <h3 class="text-strong" style="font-size:14.5px; margin-bottom:6px;">Stawki indywidualne kursantów (opcjonalnie)</h3>
+            <p class="text-muted" style="font-size:12.5px; margin-bottom:12px;">Jeśli dla danego kursanta chcesz liczyć inną stawkę niż ogólna powyżej, wpisz tu jego imię i nazwisko (dokładnie tak samo, jak w grafiku) razem ze stawką za godzinę. „Podsumowanie miesiąca" automatycznie użyje tej stawki dla jego zajęć — dla wszystkich pozostałych kursantów nadal liczy się stawka ogólna.</p>
+            <div data-admin-student-rates></div>
+            <div class="admin-add-row">
+              <input type="text" data-new-student-rate data-field="student_name" placeholder="Imię i nazwisko kursanta">
+              <input type="number" data-new-student-rate data-field="hourly_rate" min="0" step="0.01" placeholder="Stawka za godzinę (zł)">
+              <button type="button" class="btn btn-primary btn-sm" data-action="add-student-rate">+ Dodaj stawkę</button>
             </div>
           </div>
-          <label class="admin-checkbox" style="white-space:normal; flex-shrink:1;"><input type="checkbox" id="manual-tutor-published"> opublikowany (widoczny na stronie „Nasz zespół")</label>
-          <div class="row gap-sm">
-            <button type="submit" class="btn btn-primary btn-sm" id="manual-tutor-submit">Dodaj lektora</button>
-            <button type="button" class="btn btn-outline btn-sm" id="manual-tutor-cancel" style="display:none;">Anuluj edycję</button>
+
+          <h3 class="text-strong" style="font-size:14.5px; margin:20px 0 10px;">Podgląd — najbliższe 7 dni</h3>
+          <p class="text-muted" style="font-size:12.5px; margin-bottom:10px;">Kliknij „+ Dodaj" pod wybranym dniem — od razu ustawi tę datę w formularzu poniżej. Na telefonie przesuń tabelę palcem w bok, żeby zobaczyć kolejne dni.</p>
+          <div data-my-schedule-week style="margin-bottom:24px;"></div>
+
+          <h3 class="text-strong" style="font-size:14.5px; margin:20px 0 10px;">Pełna lista</h3>
+          <div data-my-schedule></div>
+          <div class="admin-add-row">
+            <input type="text" data-new-my-lesson data-field="student_name" placeholder="Imię ucznia">
+            <input type="date" data-new-my-lesson data-field="lesson_date">
+            <input type="time" data-new-my-lesson data-field="lesson_time">
+            <select data-new-my-lesson data-field="duration_minutes">
+              <option value="45">45 min</option>
+              <option value="60" selected>60 min</option>
+              <option value="90">90 min</option>
+            </select>
+            <input type="text" data-new-my-lesson data-field="notes" placeholder="Notatka (opcjonalnie)">
+            <select id="my-lesson-repeat-select">
+              <option value="1">Tylko raz</option>
+              <option value="4">Co tydzień przez 4 tygodnie</option>
+              <option value="8">Co tydzień przez 8 tygodni</option>
+              <option value="12">Co tydzień przez 12 tygodni</option>
+              <option value="24">Co tydzień przez 24 tygodnie</option>
+              <option value="52">Co tydzień przez 52 tygodnie (rok)</option>
+            </select>
+            <button type="button" class="btn btn-primary btn-sm" data-action="add-my-lesson">+ Dodaj zajęcia</button>
           </div>
-        </form>
-      </div>
+        </section>
 
-      <div data-admin-tutors></div>
-    </section>
+        <!-- LEKTORZY -->
+        <section class="card admin-tab-panel" data-tab-panel="tutors">
+          <h2 class="h2-sm" style="margin-bottom:6px;">Lektorzy</h2>
+          <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Nowe konta czekają na zatwierdzenie, zanim lektor będzie mógł cokolwiek opublikować. Zmiany profilu (imię/opis/zdjęcie) też wymagają Twojej akceptacji za każdym razem.</p>
 
-    <!-- GRAFIK ZAJĘĆ (WSZYSCY LEKTORZY) -->
-    <section class="card" style="margin-bottom:32px;">
-      <h2 class="h2-sm" style="margin-bottom:6px;">Grafik zajęć — wszyscy lektorzy</h2>
-      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Podgląd i edycja wpisów wprowadzonych przez lektorów (oraz Twoich własnych — patrz „Mój grafik" wyżej). Status zajęć możesz zmienić bezpośrednio na liście. Dane wewnętrzne — nie są publikowane na stronie.</p>
-      <div data-admin-schedule></div>
-    </section>
-
-    <!-- WIDOCZNOŚĆ ZAKŁADEK -->
-    <section class="card" style="margin-bottom:32px;">
-      <h2 class="h2-sm" style="margin-bottom:6px;">Widoczność zakładek na stronie</h2>
-      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Wyłącz zakładkę, żeby zniknęła z menu na całej stronie ORAZ żeby jej podstrona pokazywała krótki komunikat zamiast treści (np. gdy nie masz jeszcze lektorów, ukryj „Nasz zespół"). Przełącznik działa natychmiast po zapisaniu. Strona kontaktowa zawsze zostaje widoczna.</p>
-      <div data-admin-nav-visibility></div>
-    </section>
-
-    <!-- CENNIK INDYWIDUALNY -->
-    <section class="card" style="margin-bottom:32px;">
-      <h2 class="h2-sm" style="margin-bottom:6px;">Cennik — kursy indywidualne</h2>
-      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Zmiany widać na stronie „Cennik” od razu po zapisaniu.</p>
-      <div data-admin-pricing="individual"></div>
-      <div class="admin-add-row">
-        <input type="text" data-new-pricing="individual" data-field="name" placeholder="Nazwa pakietu">
-        <input type="text" data-new-pricing="individual" data-field="detail" placeholder="Liczba zajęć">
-        <input type="text" data-new-pricing="individual" data-field="price" placeholder="Cena">
-        <button type="button" class="btn btn-primary btn-sm" data-action="add-pricing" data-category="individual">+ Dodaj pakiet</button>
-      </div>
-    </section>
-
-    <!-- CENNIK GRUPOWY -->
-    <section class="card" style="margin-bottom:32px;">
-      <h2 class="h2-sm" style="margin-bottom:6px;">Cennik — kursy grupowe</h2>
-      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Zmiany widać na stronie „Cennik” od razu po zapisaniu.</p>
-      <div data-admin-pricing="group"></div>
-      <div class="admin-add-row">
-        <input type="text" data-new-pricing="group" data-field="name" placeholder="Nazwa pakietu">
-        <input type="text" data-new-pricing="group" data-field="detail" placeholder="Wielkość grupy">
-        <input type="text" data-new-pricing="group" data-field="price" placeholder="Cena / os.">
-        <button type="button" class="btn btn-primary btn-sm" data-action="add-pricing" data-category="group">+ Dodaj pakiet</button>
-      </div>
-    </section>
-
-    <!-- CENNIK TŁUMACZEŃ -->
-    <section class="card" style="margin-bottom:32px;">
-      <h2 class="h2-sm" style="margin-bottom:6px;">Cennik tłumaczeń</h2>
-      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Stawka za stronę rozliczeniową w każdej kategorii — widoczna od razu na stronie „Tłumaczenia” (cennik, ankieta i kalkulator wyceny). Liczba znaków na stronę jest ustawiona zgodnie ze standardem branżowym (1125 dla przysięgłych, 1800 dla pozostałych) — zmieniaj ją tylko, jeśli świadomie chcesz przyjąć inną zasadę liczenia.</p>
-      <div data-admin-translation-pricing></div>
-    </section>
-
-    <!-- OPINIE -->
-    <section class="card" style="margin-bottom:32px;">
-      <h2 class="h2-sm" style="margin-bottom:6px;">Opinie kursantów</h2>
-      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Odznacz „opublikowana”, żeby chwilowo ukryć opinię ze strony głównej bez jej usuwania. Usuwanie jest natychmiastowe i nieodwracalne.</p>
-      <div data-admin-testimonials></div>
-      <div class="admin-add-row">
-        <textarea data-new-testimonial data-field="quote" placeholder="Treść opinii"></textarea>
-        <input type="text" data-new-testimonial data-field="name" placeholder="Imię i nazwisko">
-        <input type="text" data-new-testimonial data-field="role" placeholder="Opis (np. Studentka, przygotowanie do wyjazdu)">
-        <input type="text" data-new-testimonial data-field="initials" placeholder="Inicjały (np. JK)" style="max-width:140px;">
-        <button type="button" class="btn btn-primary btn-sm" data-action="add-testimonial">+ Dodaj opinię</button>
-      </div>
-    </section>
-
-    <!-- FAQ -->
-    <section class="card" style="margin-bottom:32px;">
-      <h2 class="h2-sm" style="margin-bottom:6px;">FAQ</h2>
-      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Odznacz „opublikowane”, żeby chwilowo ukryć pytanie ze strony FAQ bez jego usuwania.</p>
-      <div data-admin-faq></div>
-      <div class="admin-add-row">
-        <input type="text" data-new-faq data-field="question" placeholder="Pytanie">
-        <textarea data-new-faq data-field="answer" placeholder="Odpowiedź"></textarea>
-        <button type="button" class="btn btn-primary btn-sm" data-action="add-faq">+ Dodaj pytanie</button>
-      </div>
-    </section>
-
-    <!-- SŁOWO NA DZIŚ -->
-    <section class="card" style="margin-bottom:32px;">
-      <h2 class="h2-sm" style="margin-bottom:6px;">Słowo na dziś</h2>
-      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Karta „Słowo na dziś” na stronie głównej codziennie pokazuje kolejne słówko z tej listy, a po jej wyczerpaniu zaczyna od początku. Odznacz „opublikowane”, żeby wykluczyć słówko z rotacji bez jego usuwania.</p>
-      <div data-admin-words></div>
-      <div class="admin-add-row">
-        <input type="text" data-new-word data-field="word" placeholder="Słówko (np. understood)">
-        <input type="text" data-new-word data-field="part_of_speech" placeholder="Część mowy (np. przym.)">
-        <input type="text" data-new-word data-field="pronunciation" placeholder="Wymowa (np. /ˌʌndərˈstʊd/)">
-        <input type="text" data-new-word data-field="dialect_label" placeholder="Etykieta (np. AmE)">
-        <textarea data-new-word data-field="definition" placeholder="Polskie wyjaśnienie"></textarea>
-        <button type="button" class="btn btn-primary btn-sm" data-action="add-word">+ Dodaj słówko</button>
-      </div>
-    </section>
-
-    <!-- CYTATY MOTYWUJĄCE -->
-    <section class="card" style="margin-bottom:32px;">
-      <h2 class="h2-sm" style="margin-bottom:6px;">Cytaty motywujące (panel kursanta)</h2>
-      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Karta z cytatem w panelu kursanta codziennie pokazuje kolejny cytat z tej listy, a po jej wyczerpaniu zaczyna od początku. Odznacz „opublikowane”, żeby wykluczyć cytat z rotacji bez jego usuwania.</p>
-      <div data-admin-quotes></div>
-      <div class="admin-add-row">
-        <textarea data-new-quote data-field="quote_text" placeholder="Treść cytatu (po polsku)"></textarea>
-        <input type="text" data-new-quote data-field="author" placeholder="Autor (np. Johann Wolfgang von Goethe)">
-        <button type="button" class="btn btn-primary btn-sm" data-action="add-quote">+ Dodaj cytat</button>
-      </div>
-    </section>
-
-    <!-- GRA NA ROZGRZEWKĘ -->
-    <section class="card" style="margin-bottom:32px;">
-      <h2 class="h2-sm" style="margin-bottom:6px;">Gra na rozgrzewkę — literki dnia (panel kursanta)</h2>
-      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Kursant dostaje ten ciąg liter w panelu i próbuje ułożyć z niego jak najwięcej angielskich słów przed zajęciami. Codziennie kolejny wiersz z tej listy (tak jak „Słowo na dziś”), a po jej wyczerpaniu zaczyna od początku. Im więcej liter (7–12), tym więcej słów da się ułożyć — dobrze sprawdzają się słowa związane z kursem, np. TEACHERS, LANGUAGE, VOCABULARY.</p>
-      <div data-admin-letters></div>
-      <div class="admin-add-row">
-        <input type="text" data-new-letters data-field="letters" placeholder="Litery (np. TEACHERS)">
-        <button type="button" class="btn btn-primary btn-sm" data-action="add-letters">+ Dodaj litery</button>
-      </div>
-    </section>
-
-    <!-- TREŚCI STRON -->
-    <section class="card" style="margin-bottom:32px;">
-      <h2 class="h2-sm" style="margin-bottom:6px;">Treści stron</h2>
-      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Krótkie fragmenty tekstu z różnych podstron (m.in. strona główna, oferta, o mnie). Zmiany widać od razu po zapisaniu każdego pola.</p>
-      <div data-admin-content class="stack gap-md"></div>
-    </section>
-
-    <!-- ZDJĘCIE LEKTORA -->
-    <section class="card" style="margin-bottom:32px;">
-      <h2 class="h2-sm" style="margin-bottom:6px;">Zdjęcie lektora</h2>
-      <p class="text-muted" style="font-size:13px; margin-bottom:12px;">Widoczne na stronie głównej i na stronie „O mnie”. Wgraj zdjęcie w formacie JPG lub PNG (zalecany format pionowy, podobny do 260×320).</p>
-      <div class="admin-photo-upload">
-        <img id="admin-photo-preview" src="img/lektor-przyklad.svg" alt="Podgląd bieżącego zdjęcia lektora">
-        <div class="stack gap-sm">
-          <input type="file" id="admin-photo-input" accept="image/png, image/jpeg, image/webp">
-          <div id="admin-photo-message" class="admin-message" style="display:none;"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- FILMIKI - LEKCJE -->
-    <section class="card" style="margin-bottom:32px;">
-      <h2 class="h2-sm" style="margin-bottom:6px;">Filmiki - lekcje</h2>
-      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Wklej link do filmu z YouTube (może być „niepubliczny” / unlisted — link zadziała, film po prostu nie pojawi się w wyszukiwarce YouTube). Odznacz „opublikowana”, żeby chwilowo ukryć lekcję ze strony bez jej usuwania.</p>
-      <div data-admin-videos></div>
-      <div class="admin-add-row">
-        <input type="text" data-new-video data-field="title" placeholder="Tytuł lekcji">
-        <textarea data-new-video data-field="description" placeholder="Krótki opis (opcjonalnie)"></textarea>
-        <input type="text" data-new-video data-field="youtube_url" placeholder="Link do filmu na YouTube">
-        <select data-new-video data-field="level">
-          <option value="">Poziom (opcjonalnie)</option>
-          <option value="A1">A1</option>
-          <option value="A2">A2</option>
-          <option value="B1">B1</option>
-          <option value="B2">B2</option>
-          <option value="C1">C1</option>
-          <option value="C2">C2</option>
-        </select>
-        <button type="button" class="btn btn-primary btn-sm" data-action="add-video">+ Dodaj lekcję</button>
-      </div>
-    </section>
-
-    <!-- WEBINARY -->
-    <section class="card" style="margin-bottom:32px;">
-      <h2 class="h2-sm" style="margin-bottom:6px;">Webinary</h2>
-      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Lista widoczna na stronie „Webinary”, posortowana po dacie. Link może prowadzić do czegokolwiek (Zoom, Google Meet, Calendly, nagranie na YouTube) — sam podpisujesz przycisk (np. „Dołącz” albo „Zobacz nagranie”). Odznacz „opublikowany”, żeby chwilowo ukryć webinar bez jego usuwania. Odwiedzający mogą zapisać się na webinar (imię + e-mail) nawet jeśli jest bezpłatny — liczbę zapisanych i listę zobaczysz przy każdym webinarze niżej.</p>
-      <div data-admin-webinars></div>
-      <div class="admin-add-row">
-        <div class="admin-photo-upload admin-photo-upload-wide" style="width:100%;">
-          <img id="new-webinar-image-preview" src="" alt="Podgląd obrazka marketingowego" style="display:none;">
-          <div class="stack gap-sm">
-            <input type="file" id="new-webinar-image-input" accept="image/png, image/jpeg, image/webp">
-            <p class="text-muted" style="font-size:12px;">Obrazek marketingowy (opcjonalnie) — pojawi się na karcie webinaru razem z tematem, datą i godziną.</p>
-            <div id="new-webinar-image-message" class="admin-message" style="display:none;"></div>
+          <div class="card-outline" style="margin:16px 0 24px; padding:20px;">
+            <h3 class="text-strong" style="font-size:14.5px; margin-bottom:6px;">Dodaj lektora ręcznie (bez konta)</h3>
+            <p class="text-muted" style="font-size:12px; margin-bottom:14px;">Użyj tego, gdy lektor zgodził się na umieszczenie imienia, zdjęcia i opisu, ale nie chce (jeszcze) sam zakładać konta i logować się na stronie — np. na próbę, zanim na dobre dołączy do współpracy. Taki profil nie ma własnego logowania — wszystkie dane wpisujesz i aktualizujesz tutaj, w panelu.</p>
+            <form id="manual-tutor-form" class="stack gap-sm">
+              <div class="field">
+                <label for="manual-tutor-name">Imię i nazwisko</label>
+                <input type="text" id="manual-tutor-name" placeholder="np. Anna Kowalska">
+              </div>
+              <div class="field">
+                <label for="manual-tutor-bio">O lektorze</label>
+                <textarea id="manual-tutor-bio" rows="4" placeholder="Kilka zdań o doświadczeniu i podejściu do nauczania"></textarea>
+              </div>
+              <div class="admin-photo-upload">
+                <img id="manual-tutor-photo-preview" src="img/lektor-przyklad.svg" alt="Podgląd zdjęcia lektora">
+                <div class="stack gap-sm">
+                  <input type="file" id="manual-tutor-photo-input" accept="image/png, image/jpeg, image/webp">
+                  <div id="manual-tutor-photo-message" class="admin-message" style="display:none;"></div>
+                </div>
+              </div>
+              <label class="admin-checkbox" style="white-space:normal; flex-shrink:1;"><input type="checkbox" id="manual-tutor-published"> opublikowany (widoczny na stronie „Nasz zespół")</label>
+              <div class="row gap-sm">
+                <button type="submit" class="btn btn-primary btn-sm" id="manual-tutor-submit">Dodaj lektora</button>
+                <button type="button" class="btn btn-outline btn-sm" id="manual-tutor-cancel" style="display:none;">Anuluj edycję</button>
+              </div>
+            </form>
           </div>
-        </div>
-        <input type="text" data-new-webinar data-field="title" placeholder="Temat webinaru">
-        <input type="text" data-new-webinar data-field="speaker_name" placeholder="Imię i nazwisko prowadzącego">
-        <input type="text" data-new-webinar data-field="speaker_bio" placeholder="O prowadzącym (np. Filolog angielski, UW)">
-        <input type="date" data-new-webinar data-field="event_date">
-        <input type="time" data-new-webinar data-field="event_time">
-        <textarea data-new-webinar data-field="description" placeholder="Opis webinaru (opcjonalnie)"></textarea>
-        <input type="text" data-new-webinar data-field="link_url" placeholder="Link (Zoom / Meet / YouTube / Calendly...)">
-        <input type="text" data-new-webinar data-field="link_label" placeholder="Podpis przycisku (np. Dołącz)">
-        <button type="button" class="btn btn-primary btn-sm" data-action="add-webinar">+ Dodaj webinar</button>
+
+          <div data-admin-tutors></div>
+        </section>
+
+        <!-- GRAFIK ZAJĘĆ (WSZYSCY LEKTORZY) -->
+        <section class="card admin-tab-panel" data-tab-panel="schedule-all">
+          <h2 class="h2-sm" style="margin-bottom:6px;">Grafik zajęć — wszyscy lektorzy</h2>
+          <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Podgląd i edycja wpisów wprowadzonych przez lektorów (oraz Twoich własnych — patrz „Mój grafik" wyżej). Status zajęć możesz zmienić bezpośrednio na liście. Dane wewnętrzne — nie są publikowane na stronie.</p>
+          <div data-admin-schedule></div>
+        </section>
+
+        <!-- WIDOCZNOŚĆ ZAKŁADEK -->
+        <section class="card admin-tab-panel" data-tab-panel="nav-visibility">
+          <h2 class="h2-sm" style="margin-bottom:6px;">Widoczność zakładek na stronie</h2>
+          <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Wyłącz zakładkę, żeby zniknęła z menu na całej stronie ORAZ żeby jej podstrona pokazywała krótki komunikat zamiast treści (np. gdy nie masz jeszcze lektorów, ukryj „Nasz zespół"). Przełącznik działa natychmiast po zapisaniu. Strona kontaktowa zawsze zostaje widoczna.</p>
+          <div data-admin-nav-visibility></div>
+        </section>
+
+        <!-- CENNIK INDYWIDUALNY -->
+        <section class="card admin-tab-panel" data-tab-panel="pricing-individual">
+          <h2 class="h2-sm" style="margin-bottom:6px;">Cennik — kursy indywidualne</h2>
+          <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Zmiany widać na stronie „Cennik” od razu po zapisaniu.</p>
+          <div data-admin-pricing="individual"></div>
+          <div class="admin-add-row">
+            <input type="text" data-new-pricing="individual" data-field="name" placeholder="Nazwa pakietu">
+            <input type="text" data-new-pricing="individual" data-field="detail" placeholder="Liczba zajęć">
+            <input type="text" data-new-pricing="individual" data-field="price" placeholder="Cena">
+            <button type="button" class="btn btn-primary btn-sm" data-action="add-pricing" data-category="individual">+ Dodaj pakiet</button>
+          </div>
+        </section>
+
+        <!-- CENNIK GRUPOWY -->
+        <section class="card admin-tab-panel" data-tab-panel="pricing-group">
+          <h2 class="h2-sm" style="margin-bottom:6px;">Cennik — kursy grupowe</h2>
+          <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Zmiany widać na stronie „Cennik” od razu po zapisaniu.</p>
+          <div data-admin-pricing="group"></div>
+          <div class="admin-add-row">
+            <input type="text" data-new-pricing="group" data-field="name" placeholder="Nazwa pakietu">
+            <input type="text" data-new-pricing="group" data-field="detail" placeholder="Wielkość grupy">
+            <input type="text" data-new-pricing="group" data-field="price" placeholder="Cena / os.">
+            <button type="button" class="btn btn-primary btn-sm" data-action="add-pricing" data-category="group">+ Dodaj pakiet</button>
+          </div>
+        </section>
+
+        <!-- CENNIK TŁUMACZEŃ -->
+        <section class="card admin-tab-panel" data-tab-panel="pricing-translation">
+          <h2 class="h2-sm" style="margin-bottom:6px;">Cennik tłumaczeń</h2>
+          <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Stawka za stronę rozliczeniową w każdej kategorii — widoczna od razu na stronie „Tłumaczenia” (cennik, ankieta i kalkulator wyceny). Liczba znaków na stronę jest ustawiona zgodnie ze standardem branżowym (1125 dla przysięgłych, 1800 dla pozostałych) — zmieniaj ją tylko, jeśli świadomie chcesz przyjąć inną zasadę liczenia.</p>
+          <div data-admin-translation-pricing></div>
+        </section>
+
+        <!-- OPINIE -->
+        <section class="card admin-tab-panel" data-tab-panel="testimonials">
+          <h2 class="h2-sm" style="margin-bottom:6px;">Opinie kursantów</h2>
+          <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Odznacz „opublikowana”, żeby chwilowo ukryć opinię ze strony głównej bez jej usuwania. Usuwanie jest natychmiastowe i nieodwracalne.</p>
+          <div data-admin-testimonials></div>
+          <div class="admin-add-row">
+            <textarea data-new-testimonial data-field="quote" placeholder="Treść opinii"></textarea>
+            <input type="text" data-new-testimonial data-field="name" placeholder="Imię i nazwisko">
+            <input type="text" data-new-testimonial data-field="role" placeholder="Opis (np. Studentka, przygotowanie do wyjazdu)">
+            <input type="text" data-new-testimonial data-field="initials" placeholder="Inicjały (np. JK)" style="max-width:140px;">
+            <button type="button" class="btn btn-primary btn-sm" data-action="add-testimonial">+ Dodaj opinię</button>
+          </div>
+        </section>
+
+        <!-- FAQ -->
+        <section class="card admin-tab-panel" data-tab-panel="faq">
+          <h2 class="h2-sm" style="margin-bottom:6px;">FAQ</h2>
+          <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Odznacz „opublikowane”, żeby chwilowo ukryć pytanie ze strony FAQ bez jego usuwania.</p>
+          <div data-admin-faq></div>
+          <div class="admin-add-row">
+            <input type="text" data-new-faq data-field="question" placeholder="Pytanie">
+            <textarea data-new-faq data-field="answer" placeholder="Odpowiedź"></textarea>
+            <button type="button" class="btn btn-primary btn-sm" data-action="add-faq">+ Dodaj pytanie</button>
+          </div>
+        </section>
+
+        <!-- SŁOWO NA DZIŚ -->
+        <section class="card admin-tab-panel" data-tab-panel="words">
+          <h2 class="h2-sm" style="margin-bottom:6px;">Słowo na dziś</h2>
+          <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Karta „Słowo na dziś” na stronie głównej codziennie pokazuje kolejne słówko z tej listy, a po jej wyczerpaniu zaczyna od początku. Odznacz „opublikowane”, żeby wykluczyć słówko z rotacji bez jego usuwania.</p>
+          <div data-admin-words></div>
+          <div class="admin-add-row">
+            <input type="text" data-new-word data-field="word" placeholder="Słówko (np. understood)">
+            <input type="text" data-new-word data-field="part_of_speech" placeholder="Część mowy (np. przym.)">
+            <input type="text" data-new-word data-field="pronunciation" placeholder="Wymowa (np. /ˌʌndərˈstʊd/)">
+            <input type="text" data-new-word data-field="dialect_label" placeholder="Etykieta (np. AmE)">
+            <textarea data-new-word data-field="definition" placeholder="Polskie wyjaśnienie"></textarea>
+            <button type="button" class="btn btn-primary btn-sm" data-action="add-word">+ Dodaj słówko</button>
+          </div>
+        </section>
+
+        <!-- CYTATY MOTYWUJĄCE -->
+        <section class="card admin-tab-panel" data-tab-panel="quotes">
+          <h2 class="h2-sm" style="margin-bottom:6px;">Cytaty motywujące (panel kursanta)</h2>
+          <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Karta z cytatem w panelu kursanta codziennie pokazuje kolejny cytat z tej listy, a po jej wyczerpaniu zaczyna od początku. Odznacz „opublikowane”, żeby wykluczyć cytat z rotacji bez jego usuwania.</p>
+          <div data-admin-quotes></div>
+          <div class="admin-add-row">
+            <textarea data-new-quote data-field="quote_text" placeholder="Treść cytatu (po polsku)"></textarea>
+            <input type="text" data-new-quote data-field="author" placeholder="Autor (np. Johann Wolfgang von Goethe)">
+            <button type="button" class="btn btn-primary btn-sm" data-action="add-quote">+ Dodaj cytat</button>
+          </div>
+        </section>
+
+        <!-- GRA NA ROZGRZEWKĘ -->
+        <section class="card admin-tab-panel" data-tab-panel="letters">
+          <h2 class="h2-sm" style="margin-bottom:6px;">Gra na rozgrzewkę — literki dnia (panel kursanta)</h2>
+          <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Kursant dostaje ten ciąg liter w panelu i próbuje ułożyć z niego jak najwięcej angielskich słów przed zajęciami. Codziennie kolejny wiersz z tej listy (tak jak „Słowo na dziś”), a po jej wyczerpaniu zaczyna od początku. Im więcej liter (7–12), tym więcej słów da się ułożyć — dobrze sprawdzają się słowa związane z kursem, np. TEACHERS, LANGUAGE, VOCABULARY.</p>
+          <div data-admin-letters></div>
+          <div class="admin-add-row">
+            <input type="text" data-new-letters data-field="letters" placeholder="Litery (np. TEACHERS)">
+            <button type="button" class="btn btn-primary btn-sm" data-action="add-letters">+ Dodaj litery</button>
+          </div>
+        </section>
+
+        <!-- TREŚCI STRON -->
+        <section class="card admin-tab-panel" data-tab-panel="content">
+          <h2 class="h2-sm" style="margin-bottom:6px;">Treści stron</h2>
+          <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Krótkie fragmenty tekstu z różnych podstron (m.in. strona główna, oferta, o mnie). Zmiany widać od razu po zapisaniu każdego pola.</p>
+          <div data-admin-content class="stack gap-md"></div>
+        </section>
+
+        <!-- ZDJĘCIE LEKTORA -->
+        <section class="card admin-tab-panel" data-tab-panel="photo">
+          <h2 class="h2-sm" style="margin-bottom:6px;">Zdjęcie lektora</h2>
+          <p class="text-muted" style="font-size:13px; margin-bottom:12px;">Widoczne na stronie głównej i na stronie „O mnie”. Wgraj zdjęcie w formacie JPG lub PNG (zalecany format pionowy, podobny do 260×320).</p>
+          <div class="admin-photo-upload">
+            <img id="admin-photo-preview" src="img/lektor-przyklad.svg" alt="Podgląd bieżącego zdjęcia lektora">
+            <div class="stack gap-sm">
+              <input type="file" id="admin-photo-input" accept="image/png, image/jpeg, image/webp">
+              <div id="admin-photo-message" class="admin-message" style="display:none;"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- FILMIKI - LEKCJE -->
+        <section class="card admin-tab-panel" data-tab-panel="videos">
+          <h2 class="h2-sm" style="margin-bottom:6px;">Filmiki - lekcje</h2>
+          <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Wklej link do filmu z YouTube (może być „niepubliczny” / unlisted — link zadziała, film po prostu nie pojawi się w wyszukiwarce YouTube). Odznacz „opublikowana”, żeby chwilowo ukryć lekcję ze strony bez jej usuwania.</p>
+          <div data-admin-videos></div>
+          <div class="admin-add-row">
+            <input type="text" data-new-video data-field="title" placeholder="Tytuł lekcji">
+            <textarea data-new-video data-field="description" placeholder="Krótki opis (opcjonalnie)"></textarea>
+            <input type="text" data-new-video data-field="youtube_url" placeholder="Link do filmu na YouTube">
+            <select data-new-video data-field="level">
+              <option value="">Poziom (opcjonalnie)</option>
+              <option value="A1">A1</option>
+              <option value="A2">A2</option>
+              <option value="B1">B1</option>
+              <option value="B2">B2</option>
+              <option value="C1">C1</option>
+              <option value="C2">C2</option>
+            </select>
+            <button type="button" class="btn btn-primary btn-sm" data-action="add-video">+ Dodaj lekcję</button>
+          </div>
+        </section>
+
+        <!-- WEBINARY -->
+        <section class="card admin-tab-panel" data-tab-panel="webinars">
+          <h2 class="h2-sm" style="margin-bottom:6px;">Webinary</h2>
+          <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Lista widoczna na stronie „Webinary”, posortowana po dacie. Link może prowadzić do czegokolwiek (Zoom, Google Meet, Calendly, nagranie na YouTube) — sam podpisujesz przycisk (np. „Dołącz” albo „Zobacz nagranie”). Odznacz „opublikowany”, żeby chwilowo ukryć webinar bez jego usuwania. Odwiedzający mogą zapisać się na webinar (imię + e-mail) nawet jeśli jest bezpłatny — liczbę zapisanych i listę zobaczysz przy każdym webinarze niżej.</p>
+          <div data-admin-webinars></div>
+          <div class="admin-add-row">
+            <div class="admin-photo-upload admin-photo-upload-wide" style="width:100%;">
+              <img id="new-webinar-image-preview" src="" alt="Podgląd obrazka marketingowego" style="display:none;">
+              <div class="stack gap-sm">
+                <input type="file" id="new-webinar-image-input" accept="image/png, image/jpeg, image/webp">
+                <p class="text-muted" style="font-size:12px;">Obrazek marketingowy (opcjonalnie) — pojawi się na karcie webinaru razem z tematem, datą i godziną.</p>
+                <div id="new-webinar-image-message" class="admin-message" style="display:none;"></div>
+              </div>
+            </div>
+            <input type="text" data-new-webinar data-field="title" placeholder="Temat webinaru">
+            <input type="text" data-new-webinar data-field="speaker_name" placeholder="Imię i nazwisko prowadzącego">
+            <input type="text" data-new-webinar data-field="speaker_bio" placeholder="O prowadzącym (np. Filolog angielski, UW)">
+            <input type="date" data-new-webinar data-field="event_date">
+            <input type="time" data-new-webinar data-field="event_time">
+            <textarea data-new-webinar data-field="description" placeholder="Opis webinaru (opcjonalnie)"></textarea>
+            <input type="text" data-new-webinar data-field="link_url" placeholder="Link (Zoom / Meet / YouTube / Calendly...)">
+            <input type="text" data-new-webinar data-field="link_label" placeholder="Podpis przycisku (np. Dołącz)">
+            <button type="button" class="btn btn-primary btn-sm" data-action="add-webinar">+ Dodaj webinar</button>
+          </div>
+        </section>
+
+        <!-- DIAGNOZA POGŁĘBIONA -->
+        <section class="card admin-tab-panel" data-tab-panel="diagnosis">
+          <h2 class="h2-sm" style="margin-bottom:6px;">Diagnoza pogłębiona i panel kursanta — kody dostępu, wyniki i zajęcia</h2>
+          <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Ten sam indywidualny kod, który tu wygenerujesz, otwiera kursantowi dwie rzeczy: dwa dłuższe testy diagnostyczne na <code>diagnoza.html</code> (ogólny i biznesowy — strona nie ma wpisu w menu, dostępna tylko przez ten kod albo link z podstrony „Sprawdź swój poziom") oraz jego własny <code>panel-kursanta.html</code>, gdzie widzi historię swoich wyników i nadchodzące zajęcia. Wystarczy wysłać kursantowi jeden kod — nie trzeba zakładać mu osobnego konta. Kod nie jest jednorazowy, dopóki go nie wyłączysz przełącznikiem „aktywny”. <b>Ważne:</b> żeby nadchodzące zajęcia kursanta pokazały się w jego panelu, wpisuj jego imię i nazwisko dokładnie tak samo tutaj i w grafiku zajęć lektora (wielkość liter nie ma znaczenia, ale sama pisownia — tak). Pole „Cel nauki” przy każdym kodzie może wypełnić sam kursant w swoim panelu, albo Ty tutaj — np. gdy powie Ci go telefonicznie; widoczna przy kodzie „🔥 X dni z rzędu” to licznik regularnych wizyt kursanta w panelu, aktualizowany automatycznie.</p>
+
+          <h3 class="text-strong" style="font-size:14.5px; margin:16px 0 10px;">Kody dostępu</h3>
+          <div data-admin-diagnosis-codes></div>
+          <div class="admin-add-row">
+            <input type="text" id="new-diagnosis-name" placeholder="Imię i nazwisko kursanta">
+            <input type="text" id="new-diagnosis-code" placeholder="Kod dostępu">
+            <button type="button" class="btn btn-outline btn-sm" id="generate-diagnosis-code">Wylosuj kod</button>
+            <button type="button" class="btn btn-primary btn-sm" data-action="add-diagnosis-code">+ Dodaj kod</button>
+          </div>
+
+          <h3 class="text-strong" style="font-size:14.5px; margin:28px 0 10px;">Wyniki diagnoz</h3>
+          <p class="text-muted" style="font-size:12.5px; margin-bottom:8px;">Wyniki trafiają tu automatycznie, gdy kursant skończy test.</p>
+          <div data-admin-diagnosis-results></div>
+        </section>
+
+        <!-- DANE KONTAKTOWE -->
+        <section class="card admin-tab-panel" data-tab-panel="contact">
+          <h2 class="h2-sm" style="margin-bottom:6px;">Dane kontaktowe</h2>
+          <p class="text-muted" style="font-size:13px; margin-bottom:16px;">Widoczne w stopce każdej podstrony oraz na stronie Kontakt.</p>
+          <form id="admin-contact-form" class="stack gap-md" style="gap:16px; max-width:480px;">
+            <div class="field">
+              <label for="admin-contact-email">E-mail</label>
+              <input type="email" id="admin-contact-email" placeholder="kontakt@ownenglish.pl">
+            </div>
+            <div class="field">
+              <label for="admin-contact-phone">Telefon</label>
+              <input type="text" id="admin-contact-phone" placeholder="+48 ...">
+            </div>
+            <div class="field">
+              <label for="admin-contact-location">Lokalizacja</label>
+              <input type="text" id="admin-contact-location" placeholder="np. Warszawa, zajęcia online">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:fit-content;">Zapisz dane kontaktowe</button>
+          </form>
+        </section>
+
       </div>
-    </section>
+      <!-- /.admin-tab-panels -->
 
-    <!-- DIAGNOZA POGŁĘBIONA -->
-    <section class="card" style="margin-bottom:32px;">
-      <h2 class="h2-sm" style="margin-bottom:6px;">Diagnoza pogłębiona i panel kursanta — kody dostępu, wyniki i zajęcia</h2>
-      <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Ten sam indywidualny kod, który tu wygenerujesz, otwiera kursantowi dwie rzeczy: dwa dłuższe testy diagnostyczne na <code>diagnoza.html</code> (ogólny i biznesowy — strona nie ma wpisu w menu, dostępna tylko przez ten kod albo link z podstrony „Sprawdź swój poziom") oraz jego własny <code>panel-kursanta.html</code>, gdzie widzi historię swoich wyników i nadchodzące zajęcia. Wystarczy wysłać kursantowi jeden kod — nie trzeba zakładać mu osobnego konta. Kod nie jest jednorazowy, dopóki go nie wyłączysz przełącznikiem „aktywny”. <b>Ważne:</b> żeby nadchodzące zajęcia kursanta pokazały się w jego panelu, wpisuj jego imię i nazwisko dokładnie tak samo tutaj i w grafiku zajęć lektora (wielkość liter nie ma znaczenia, ale sama pisownia — tak). Pole „Cel nauki” przy każdym kodzie może wypełnić sam kursant w swoim panelu, albo Ty tutaj — np. gdy powie Ci go telefonicznie; widoczna przy kodzie „🔥 X dni z rzędu” to licznik regularnych wizyt kursanta w panelu, aktualizowany automatycznie.</p>
-
-      <h3 class="text-strong" style="font-size:14.5px; margin:16px 0 10px;">Kody dostępu</h3>
-      <div data-admin-diagnosis-codes></div>
-      <div class="admin-add-row">
-        <input type="text" id="new-diagnosis-name" placeholder="Imię i nazwisko kursanta">
-        <input type="text" id="new-diagnosis-code" placeholder="Kod dostępu">
-        <button type="button" class="btn btn-outline btn-sm" id="generate-diagnosis-code">Wylosuj kod</button>
-        <button type="button" class="btn btn-primary btn-sm" data-action="add-diagnosis-code">+ Dodaj kod</button>
-      </div>
-
-      <h3 class="text-strong" style="font-size:14.5px; margin:28px 0 10px;">Wyniki diagnoz</h3>
-      <p class="text-muted" style="font-size:12.5px; margin-bottom:8px;">Wyniki trafiają tu automatycznie, gdy kursant skończy test.</p>
-      <div data-admin-diagnosis-results></div>
-    </section>
-
-    <!-- DANE KONTAKTOWE -->
-    <section class="card" style="margin-bottom:32px;">
-      <h2 class="h2-sm" style="margin-bottom:6px;">Dane kontaktowe</h2>
-      <p class="text-muted" style="font-size:13px; margin-bottom:16px;">Widoczne w stopce każdej podstrony oraz na stronie Kontakt.</p>
-      <form id="admin-contact-form" class="stack gap-md" style="gap:16px; max-width:480px;">
-        <div class="field">
-          <label for="admin-contact-email">E-mail</label>
-          <input type="email" id="admin-contact-email" placeholder="kontakt@ownenglish.pl">
-        </div>
-        <div class="field">
-          <label for="admin-contact-phone">Telefon</label>
-          <input type="text" id="admin-contact-phone" placeholder="+48 ...">
-        </div>
-        <div class="field">
-          <label for="admin-contact-location">Lokalizacja</label>
-          <input type="text" id="admin-contact-location" placeholder="np. Warszawa, zajęcia online">
-        </div>
-        <button type="submit" class="btn btn-primary" style="width:fit-content;">Zapisz dane kontaktowe</button>
-      </form>
-    </section>
+    </div>
+    <!-- /.admin-layout -->
 
   </div>
+
+  <script>
+    // Przełączanie zakładek panelu administratora — niezależne od logiki
+    // Supabase w js/admin.js (ta ostatnia tylko wypełnia dane wewnątrz
+    // poszczególnych zakładek, niezależnie od tego, która jest aktywna).
+    (function () {
+      function initAdminTabs() {
+        var buttons = document.querySelectorAll('.admin-tab-btn');
+        var panels = document.querySelectorAll('.admin-tab-panel');
+        var select = document.getElementById('admin-tab-select');
+        if (!buttons.length || !panels.length) return;
+
+        function activate(target, persist) {
+          buttons.forEach(function (b) {
+            b.classList.toggle('is-active', b.getAttribute('data-tab-target') === target);
+          });
+          panels.forEach(function (p) {
+            p.classList.toggle('is-active', p.getAttribute('data-tab-panel') === target);
+          });
+          if (select) select.value = target;
+          if (persist) {
+            try { localStorage.setItem('ownenglish-admin-tab', target); } catch (e) { /* ignorowane — np. tryb prywatny */ }
+          }
+        }
+
+        buttons.forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            activate(btn.getAttribute('data-tab-target'), true);
+          });
+        });
+
+        if (select) {
+          select.addEventListener('change', function () {
+            activate(select.value, true);
+          });
+        }
+
+        var validTargets = Array.prototype.map.call(panels, function (p) {
+          return p.getAttribute('data-tab-panel');
+        });
+
+        var saved = null;
+        try { saved = localStorage.getItem('ownenglish-admin-tab'); } catch (e) { /* ignorowane */ }
+
+        var initial = (saved && validTargets.indexOf(saved) !== -1) ? saved : validTargets[0];
+        activate(initial, false);
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAdminTabs);
+      } else {
+        initAdminTabs();
+      }
+    })();
+  </script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="js/supabase-config.js"></script>
