@@ -24,6 +24,10 @@
   var logoutBtn = document.getElementById('admin-logout');
   var configWarning = document.getElementById('admin-config-warning');
   var globalMessage = document.getElementById('admin-global-message');
+  var maintenanceBanner = document.getElementById('maintenance-active-banner');
+  var maintenanceToggle = document.getElementById('maintenance-mode-toggle');
+  var maintenanceMessageInput = document.getElementById('maintenance-message');
+  var maintenanceMessageSaveBtn = document.getElementById('maintenance-message-save');
 
   function isConfigured() {
     return (
@@ -313,6 +317,7 @@
     loadTutorsAdmin();
     loadScheduleAdmin();
     loadNavVisibility();
+    loadMaintenanceStatus();
     loadPricingAdmin();
     loadTranslationPricingAdmin();
     loadTestimonialsAdmin();
@@ -1206,6 +1211,63 @@
     });
   }
 
+  // ---------- TRYB PRZEBUDOWY STRONY (site_status) ----------
+  // Jeden wiersz (id = 1) w tabeli site_status — patrz supabase-setup.sql,
+  // sekcja 27. Gdy maintenance_mode = true, każda publiczna podstrona
+  // (js/site-content.js, funkcja applyMaintenanceMode) chowa swoją
+  // zawartość i pokazuje zamiast niej maintenance_message. Ten panel nie
+  // wczytuje site-content.js, więc zawsze zostaje dostępny.
+
+  function loadMaintenanceStatus() {
+    if (!maintenanceToggle) return;
+    client.from('site_status').select('*').eq('id', 1).single().then(function (res) {
+      if (res.error || !res.data) return;
+      maintenanceToggle.checked = !!res.data.maintenance_mode;
+      if (maintenanceMessageInput) maintenanceMessageInput.value = res.data.maintenance_message || '';
+      renderMaintenanceBanner(!!res.data.maintenance_mode);
+    });
+  }
+
+  function renderMaintenanceBanner(isOn) {
+    if (!maintenanceBanner) return;
+    if (!isOn) {
+      maintenanceBanner.style.display = 'none';
+      maintenanceBanner.textContent = '';
+      return;
+    }
+    maintenanceBanner.textContent = 'Strona jest teraz w trybie przebudowy — odwiedzający widzą tylko komunikat zamiast zawartości. Wyłącz przełącznik w zakładce „Tryb przebudowy strony", gdy skończysz aktualizację.';
+    maintenanceBanner.style.display = 'block';
+  }
+
+  function setMaintenanceMode(isOn) {
+    client.from('site_status').update({ maintenance_mode: isOn }).eq('id', 1).then(function (res) {
+      if (res.error) {
+        showMessage(globalMessage, 'Błąd zapisu: ' + res.error.message, 'error');
+        if (maintenanceToggle) maintenanceToggle.checked = !isOn;
+        return;
+      }
+      renderMaintenanceBanner(isOn);
+      showMessage(globalMessage, isOn ? 'Strona przełączona w tryb przebudowy — odwiedzający widzą teraz tylko komunikat.' : 'Strona wróciła do normalnego trybu — zawartość znów jest widoczna.', 'success');
+    });
+  }
+
+  if (maintenanceToggle) {
+    maintenanceToggle.addEventListener('change', function () {
+      setMaintenanceMode(maintenanceToggle.checked);
+    });
+  }
+
+  if (maintenanceMessageSaveBtn) {
+    maintenanceMessageSaveBtn.addEventListener('click', function () {
+      var text = (maintenanceMessageInput && maintenanceMessageInput.value.trim()) || '';
+      if (!text) { showMessage(globalMessage, 'Podaj treść komunikatu.', 'error'); return; }
+      client.from('site_status').update({ maintenance_message: text }).eq('id', 1).then(function (res) {
+        if (res.error) { showMessage(globalMessage, 'Błąd zapisu komunikatu: ' + res.error.message, 'error'); return; }
+        showMessage(globalMessage, 'Zapisano treść komunikatu.', 'success');
+      });
+    });
+  }
+
   // ---------- CENNIK ----------
 
   function loadPricingAdmin() {
@@ -1821,7 +1883,7 @@
         client.from('site_content').update({ value: publicUrl }).eq('key', 'lektor_photo_url').then(function (updateRes) {
           if (updateRes.error) { showMessage(msg, 'Błąd zapisu adresu zdjęcia: ' + updateRes.error.message, 'error'); return; }
           preview.src = publicUrl;
-          showMessage(msg, 'Zdjęcie zaktualizowane — widoczne na stronie głównej i „O mnie”.', 'success');
+          showMessage(msg, 'Zdjęcie zaktualizowane — widoczne na stronie głównej i „O mnie".', 'success');
         });
       });
     });
@@ -2004,7 +2066,7 @@
           if (!publicUrl) { showMessage(message, 'Nie udało się pobrać adresu obrazka.', 'error'); return; }
           row.setAttribute('data-image-url', publicUrl);
           if (preview) { preview.src = publicUrl; preview.style.display = ''; }
-          showMessage(message, 'Obrazek gotowy — zapisze się po kliknięciu „Zapisz”.', 'success');
+          showMessage(message, 'Obrazek gotowy — zapisze się po kliknięciu „Zapisz".', 'success');
         });
       });
     });

@@ -136,6 +136,7 @@
   <!-- DASHBOARD ADMINA -->
   <div id="admin-dashboard" class="container" style="display:none; padding-top:40px; padding-bottom:80px;">
 
+    <div id="maintenance-active-banner" class="admin-config-warning" style="display:none; margin-bottom:16px;"></div>
     <div id="admin-global-message" class="admin-message" style="margin-bottom:24px;"></div>
 
     <div class="admin-layout">
@@ -148,6 +149,7 @@
           <option value="tutors">Lektorzy</option>
           <option value="schedule-all">Grafik zajęć — wszyscy lektorzy</option>
           <option value="nav-visibility">Widoczność zakładek</option>
+          <option value="maintenance">Tryb przebudowy strony</option>
           <option value="pricing-individual">Cennik — indywidualne</option>
           <option value="pricing-group">Cennik — grupowe</option>
           <option value="pricing-translation">Cennik tłumaczeń</option>
@@ -169,6 +171,7 @@
           <button type="button" class="admin-tab-btn" data-tab-target="tutors">Lektorzy</button>
           <button type="button" class="admin-tab-btn" data-tab-target="schedule-all">Grafik zajęć — wszyscy lektorzy</button>
           <button type="button" class="admin-tab-btn" data-tab-target="nav-visibility">Widoczność zakładek</button>
+          <button type="button" class="admin-tab-btn" data-tab-target="maintenance">Tryb przebudowy strony</button>
           <button type="button" class="admin-tab-btn" data-tab-target="pricing-individual">Cennik — indywidualne</button>
           <button type="button" class="admin-tab-btn" data-tab-target="pricing-group">Cennik — grupowe</button>
           <button type="button" class="admin-tab-btn" data-tab-target="pricing-translation">Cennik tłumaczeń</button>
@@ -313,6 +316,21 @@
           <h2 class="h2-sm" style="margin-bottom:6px;">Widoczność zakładek na stronie</h2>
           <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Wyłącz zakładkę, żeby zniknęła z menu na całej stronie ORAZ żeby jej podstrona pokazywała krótki komunikat zamiast treści (np. gdy nie masz jeszcze lektorów, ukryj „Nasz zespół"). Przełącznik działa natychmiast po zapisaniu. Strona kontaktowa zawsze zostaje widoczna. Pozycja „Co mówią kursanci" to wyjątek — to nie osobna podstrona, tylko sekcja na stronie głównej: wyłączenie jej chowa tylko tę jedną sekcję, a reszta strony głównej zostaje bez zmian.</p>
           <div data-admin-nav-visibility></div>
+        </section>
+
+        <!-- TRYB PRZEBUDOWY STRONY -->
+        <section class="card admin-tab-panel" data-tab-panel="maintenance">
+          <h2 class="h2-sm" style="margin-bottom:6px;">Tryb przebudowy strony</h2>
+          <p class="text-muted" style="font-size:13px; margin-bottom:8px;">Włącz, gdy chcesz tymczasowo ukryć całą zawartość strony przed odwiedzającymi — np. podczas większej aktualizacji albo przebudowy. Wszystkie publiczne podstrony pokażą wtedy tylko krótki komunikat zamiast swojej treści. Ten panel administracyjny zawsze zostaje dostępny, więc zawsze będziesz mógł/mogła wyłączyć tryb z powrotem, nawet gdy jest włączony. Przełącznik działa natychmiast po kliknięciu — bez osobnego przycisku „Zapisz".</p>
+          <label class="admin-checkbox" style="display:flex; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid var(--color-border); white-space:normal;">
+            <input type="checkbox" id="maintenance-mode-toggle">
+            <span style="color:var(--color-ink); font-size:14.5px; font-weight:600;">Strona w trybie przebudowy (ukryj zawartość przed odwiedzającymi)</span>
+          </label>
+          <div class="field" style="margin-top:16px;">
+            <label for="maintenance-message">Treść komunikatu wyświetlanego odwiedzającym</label>
+            <textarea id="maintenance-message" rows="3" placeholder="Strona jest obecnie w przebudowie. Zajrzyj tu niebawem."></textarea>
+          </div>
+          <button type="button" id="maintenance-message-save" class="btn btn-primary btn-sm" style="margin-top:10px; width:fit-content;">Zapisz treść komunikatu</button>
         </section>
 
         <!-- CENNIK INDYWIDUALNY -->

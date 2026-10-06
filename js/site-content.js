@@ -30,6 +30,7 @@
   if (!client) return; // brak konfiguracji Supabase — zostaje statyczna treść z HTML
 
   document.addEventListener('DOMContentLoaded', function () {
+    applyMaintenanceMode();
     loadPricing();
     loadTestimonials();
     loadContactInfo();
@@ -468,5 +469,60 @@
         });
       })
       .catch(function () { /* w razie błędu zostają wszystkie zakładki widoczne */ });
+  }
+
+  // ---------- TRYB PRZEBUDOWY STRONY (site_status) ----------
+  // Przełącznik w panelu administratora (zakładka "Tryb przebudowy strony")
+  // pozwala tymczasowo ukryć całą zawartość każdej publicznej podstrony,
+  // która wczytuje ten plik, i pokazać w jej miejsce krótki komunikat.
+  // Panel administracyjny (admin.html) NIE wczytuje tego skryptu, więc
+  // zawsze zostaje dostępny — da się z niego wyłączyć tryb z powrotem.
+  // Tak jak przy widoczności zakładek wyżej: to kontrola po stronie
+  // przeglądarki (strona jest statyczna, bez własnego serwera), więc przy
+  // włączonym trybie oryginalna treść może na ułamek sekundy mignąć, zanim
+  // skrypt zdąży ją ukryć — nieszkodliwe przy normalnym korzystaniu ze
+  // strony, ale to nie jest "twarde" ukrycie po stronie serwera.
+
+  function applyMaintenanceMode() {
+    client
+      .from('site_status')
+      .select('*')
+      .eq('id', 1)
+      .single()
+      .then(function (res) {
+        if (res.error || !res.data || !res.data.maintenance_mode) return; // strona działa normalnie
+        showMaintenanceOverlay(res.data.maintenance_message);
+      })
+      .catch(function () { /* w razie błędu (np. tabela jeszcze nie istnieje) strona działa normalnie */ });
+  }
+
+  function showMaintenanceOverlay(message) {
+    var text = (message && message.trim()) || 'Strona jest obecnie w przebudowie. Zajrzyj tu niebawem.';
+    var textHtml = text.split('\n').map(escapeHtml).join('<br>');
+
+    // Chowamy całą dotychczasową zawartość strony (nie usuwamy jej — gdy
+    // administrator wyłączy tryb przebudowy, wystarczy odświeżyć stronę).
+    Array.prototype.forEach.call(document.body.children, function (el) {
+      el.style.display = 'none';
+    });
+
+    var overlay = document.createElement('div');
+    overlay.id = 'maintenance-overlay';
+    overlay.setAttribute('role', 'status');
+    overlay.style.cssText = 'position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:#FFFFFF; padding:24px; box-sizing:border-box;';
+    overlay.innerHTML =
+      '<div style="max-width:440px; text-align:center;">' +
+      '<svg width="48" height="48" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin:0 auto 20px; display:block;">' +
+      '<path d="M8 10C8 7.79 9.79 6 12 6H28C30.21 6 32 7.79 32 10V22C32 24.21 30.21 26 28 26H12C9.79 26 8 24.21 8 22V10Z" stroke="#16A34A" stroke-width="2.4" stroke-linejoin="round"/>' +
+      '<path d="M13.5 14.5C13.5 14.5 15.5 12.3 18 14.5C20.5 16.7 22.5 12.3 25 14.5" stroke="#16A34A" stroke-width="2.1" stroke-linecap="round" opacity="0.55"/>' +
+      '<path d="M13.5 19.2Q19 22.6 24.5 19.2" stroke="#16A34A" stroke-width="2.3" stroke-linecap="round"/>' +
+      '<path d="M18 23.5L22 23.5L23.3 27.5L20 34L16.7 27.5Z" fill="#629D89" stroke="#629D89" stroke-width="0.4" stroke-linejoin="round"/>' +
+      '</svg>' +
+      '<h1 style="font-family:\'Space Grotesk\', Arial, sans-serif; font-size:24px; font-weight:700; color:#1C1A18; margin:0 0 12px;">Strona w przebudowie</h1>' +
+      '<p style="font-family:\'Public Sans\', Arial, sans-serif; font-size:15.5px; line-height:1.6; color:#6B655D; margin:0;">' + textHtml + '</p>' +
+      '</div>';
+
+    document.documentElement.style.overflow = 'hidden';
+    document.body.appendChild(overlay);
   }
 })();
